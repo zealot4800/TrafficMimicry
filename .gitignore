@@ -1,0 +1,4 @@
+*.pem
+*.venv
+*__pycache__
+*.pcap
