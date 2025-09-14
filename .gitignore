@@ -7,3 +7,4 @@
 *.csv
 FlowPic_raw_csvs/*
 *.zip
+*.pkl
