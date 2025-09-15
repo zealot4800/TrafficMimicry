@@ -43,11 +43,11 @@ def get_class_patterns(X, y, classes, model_name):
         importances = ovr_model.feature_importances_
         indices = np.argsort(importances)[::-1]
         
-        # Top 10 features
-        top_features = [feature_names[i] for i in indices[:10]]
-        top_importances = importances[indices[:10]]
+        # All features
+        top_features = [feature_names[i] for i in indices]
+        top_importances = importances[indices]
         
-        print("Top 10 important features (softmax normalized 0-1):")
+        print("All important features (softmax normalized 0-1):")
         # Apply softmax to the top importances
         import math
         exp_importances = [math.exp(imp) for imp in top_importances]
@@ -55,11 +55,11 @@ def get_class_patterns(X, y, classes, model_name):
         softmax_scores = [exp_imp / sum_exp for exp_imp in exp_importances]
         
         for feat, score in zip(top_features, softmax_scores):
-            print(f"{feat}: {score:.3f}")
+            print(f"{feat}: {score:.8f}")
         
         avg_score = sum(softmax_scores) / len(softmax_scores) if softmax_scores else 0
-        print(f"Average score: {avg_score:.3f}")
-        print(f"Total sum: {sum(softmax_scores):.3f}")
+        print(f"Average score: {avg_score:.8f}")
+        print(f"Total sum: {sum(softmax_scores):.8f}")
 
 # Level 1: VPN vs NonVPN
 X_level1 = features
