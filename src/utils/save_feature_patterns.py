@@ -44,10 +44,10 @@ def get_class_patterns(X, y, classes, model_name, output_file):
         indices = np.argsort(importances)[::-1]
 
         # Top 10 features
-        top_features = [feature_names[i] for i in indices[:10]]
-        top_importances = importances[indices[:10]]
+        top_features = [feature_names[i] for i in indices[:20]]
+        top_importances = importances[indices[:20]]
 
-        output_file.write("Top 10 important features (softmax normalized 0-1):\n")
+        output_file.write("Top 20 important features (softmax normalized 0-1):\n")
         # Apply softmax to the top importances
         exp_importances = [math.exp(imp) for imp in top_importances]
         sum_exp = sum(exp_importances)
