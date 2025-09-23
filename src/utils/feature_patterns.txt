@@ -1,196 +1,276 @@
-TRAFFIC MIMICRY SYSTEM - FEATURE IMPORTANCE PATTERNS
-============================================================
-Generated on: 14 September 2025
-This file contains the softmax-normalized feature importance patterns for each traffic class.
-Each score represents the relative importance as a probability (0-1 scale).
-The top 10 features for each class sum to 1.000.
 
+Class: VPN-NONVPN-VPN
+Top 20 important features (softmax normalized 0-1):
+pkt_len_min: 0.05687416
+fwd_pkt_len_min: 0.05265290
+src_port: 0.05232297
+bwd_pkt_len_min: 0.05133681
+fwd_iat_tot: 0.04999914
+subflow_bwd_byts: 0.04989928
+totlen_fwd_pkts: 0.04972598
+fwd_act_data_pkts: 0.04958823
+bwd_iat_tot: 0.04947067
+totlen_bwd_pkts: 0.04937436
+psh_flag_cnt: 0.04910199
+flow_duration: 0.04898756
+subflow_fwd_byts: 0.04894905
+dst_port: 0.04891797
+syn_flag_cnt: 0.04889302
+init_fwd_win_byts: 0.04881398
+ack_flag_cnt: 0.04879654
+fwd_psh_flags: 0.04879167
+fwd_seg_size_avg: 0.04877193
+flow_iat_std: 0.04873180
 
-=== Level 1: VPN vs NonVPN Class Patterns ===
+Class: VPN-NONVPN-NonVPN
+Top 20 important features (softmax normalized 0-1):
+pkt_len_min: 0.05687416
+fwd_pkt_len_min: 0.05265290
+src_port: 0.05232297
+bwd_pkt_len_min: 0.05133681
+fwd_iat_tot: 0.04999914
+subflow_bwd_byts: 0.04989928
+totlen_fwd_pkts: 0.04972598
+fwd_act_data_pkts: 0.04958823
+bwd_iat_tot: 0.04947067
+totlen_bwd_pkts: 0.04937436
+psh_flag_cnt: 0.04910199
+flow_duration: 0.04898756
+subflow_fwd_byts: 0.04894905
+dst_port: 0.04891797
+syn_flag_cnt: 0.04889302
+init_fwd_win_byts: 0.04881398
+ack_flag_cnt: 0.04879654
+fwd_psh_flags: 0.04879167
+fwd_seg_size_avg: 0.04877193
+flow_iat_std: 0.04873180
 
-Class: VPN
-Top 10 important features (softmax normalized 0-1):
-pkt_len_min: 0.111
-fwd_pkt_len_min: 0.103
-src_port: 0.102
-bwd_pkt_len_min: 0.100
-fwd_iat_tot: 0.098
-subflow_bwd_byts: 0.098
-totlen_fwd_pkts: 0.097
-fwd_act_data_pkts: 0.097
-bwd_iat_tot: 0.097
-totlen_bwd_pkts: 0.097
-Average score: 0.100
-Total sum: 1.000
+Class: VPN-Chat
+Top 20 important features (softmax normalized 0-1):
+fwd_seg_size_avg: 0.05320636
+bwd_seg_size_avg: 0.05286046
+bwd_pkt_len_mean: 0.05209363
+flow_iat_max: 0.05136817
+fwd_pkt_len_mean: 0.05096482
+pkt_len_mean: 0.05085282
+pkt_size_avg: 0.04990804
+flow_iat_mean: 0.04940415
+pkt_len_min: 0.04939547
+bwd_pkt_len_std: 0.04935280
+pkt_len_std: 0.04933053
+fwd_act_data_pkts: 0.04927333
+fwd_header_len: 0.04919390
+flow_pkts_s: 0.04914012
+bwd_iat_mean: 0.04911626
+fwd_pkt_len_std: 0.04898841
+pkt_len_max: 0.04892254
+tot_fwd_pkts: 0.04890502
+flow_byts_s: 0.04888606
+pkt_len_var: 0.04883711
 
-Class: NonVPN
-Top 10 important features (softmax normalized 0-1):
-pkt_len_min: 0.111
-fwd_pkt_len_min: 0.103
-src_port: 0.102
-bwd_pkt_len_min: 0.100
-fwd_iat_tot: 0.098
-subflow_bwd_byts: 0.098
-totlen_fwd_pkts: 0.097
-fwd_act_data_pkts: 0.097
-bwd_iat_tot: 0.097
-totlen_bwd_pkts: 0.097
-Average score: 0.100
-Total sum: 1.000
+Class: VPN-Command&Control
+Top 20 important features (softmax normalized 0-1):
+pkt_len_mean: 0.05210269
+pkt_size_avg: 0.05124857
+bwd_iat_mean: 0.05118721
+bwd_pkt_len_mean: 0.05053578
+bwd_iat_max: 0.05021847
+fwd_seg_size_avg: 0.05016657
+fwd_pkt_len_mean: 0.05006518
+bwd_seg_size_avg: 0.05004187
+fwd_iat_mean: 0.04989245
+fwd_pkts_s: 0.04974551
+flow_iat_mean: 0.04968140
+pkt_len_max: 0.04967979
+bwd_pkt_len_max: 0.04966404
+pkt_len_std: 0.04965046
+bwd_header_len: 0.04958895
+fwd_pkt_len_max: 0.04941664
+flow_pkts_s: 0.04932812
+pkt_len_var: 0.04927814
+bwd_iat_tot: 0.04926336
+flow_iat_max: 0.04924478
 
-=== VPN Services Class Patterns ===
+Class: VPN-FileTransfer
+Top 20 important features (softmax normalized 0-1):
+pkt_len_var: 0.05397030
+pkt_len_mean: 0.05233879
+pkt_len_std: 0.05136740
+pkt_size_avg: 0.05118035
+bwd_blk_rate_avg: 0.05101858
+bwd_pkts_b_avg: 0.05045056
+totlen_bwd_pkts: 0.05001043
+bwd_iat_max: 0.04985883
+fwd_blk_rate_avg: 0.04944903
+bwd_pkt_len_mean: 0.04944230
+subflow_bwd_byts: 0.04931762
+bwd_seg_size_avg: 0.04925108
+fwd_pkts_b_avg: 0.04923496
+fwd_iat_max: 0.04920617
+flow_iat_max: 0.04911439
+fwd_iat_tot: 0.04906939
+bwd_header_len: 0.04901062
+flow_byts_s: 0.04897857
+tot_bwd_pkts: 0.04886962
+totlen_fwd_pkts: 0.04886103
 
-Class: Chat
-Top 10 important features (softmax normalized 0-1):
-fwd_seg_size_avg: 0.104
-bwd_seg_size_avg: 0.104
-bwd_pkt_len_mean: 0.102
-flow_iat_max: 0.101
-fwd_pkt_len_mean: 0.100
-pkt_len_mean: 0.100
-pkt_size_avg: 0.098
-flow_iat_mean: 0.097
-pkt_len_min: 0.097
-bwd_pkt_len_std: 0.097
-Average score: 0.100
-Total sum: 1.000
+Class: VPN-Streaming
+Top 20 important features (softmax normalized 0-1):
+pkt_len_var: 0.05170695
+bwd_blk_rate_avg: 0.05110204
+pkt_len_mean: 0.05076924
+pkt_len_std: 0.05052184
+fwd_seg_size_avg: 0.05028545
+flow_iat_max: 0.05020234
+pkt_size_avg: 0.05016135
+flow_duration: 0.04997344
+bwd_iat_max: 0.04995968
+fwd_blk_rate_avg: 0.04982709
+down_up_ratio: 0.04980639
+flow_iat_std: 0.04968334
+pkt_len_min: 0.04961396
+fwd_iat_tot: 0.04958908
+fwd_iat_max: 0.04957802
+fwd_pkt_len_mean: 0.04956428
+bwd_pkts_b_avg: 0.04949812
+fwd_pkt_len_min: 0.04941277
+flow_byts_s: 0.04937678
+bwd_pkts_s: 0.04936783
 
-Class: Command&Control
-Top 10 important features (softmax normalized 0-1):
-pkt_len_mean: 0.103
-pkt_size_avg: 0.101
-bwd_iat_mean: 0.101
-bwd_pkt_len_mean: 0.100
-bwd_iat_max: 0.099
-fwd_seg_size_avg: 0.099
-fwd_pkt_len_mean: 0.099
-bwd_seg_size_avg: 0.099
-fwd_iat_mean: 0.099
-fwd_pkts_s: 0.098
-Average score: 0.100
-Total sum: 1.000
+Class: VPN-VoIP
+Top 20 important features (softmax normalized 0-1):
+down_up_ratio: 0.05150410
+fwd_pkt_len_max: 0.05103179
+totlen_bwd_pkts: 0.05103006
+bwd_pkt_len_min: 0.05084306
+subflow_bwd_pkts: 0.05056570
+subflow_bwd_byts: 0.05049910
+pkt_len_max: 0.05019349
+tot_bwd_pkts: 0.05017083
+bwd_pkt_len_max: 0.05016556
+pkt_len_mean: 0.05001557
+bwd_header_len: 0.04973242
+fwd_pkt_len_mean: 0.04971516
+pkt_len_min: 0.04965424
+src_port: 0.04963772
+fwd_seg_size_avg: 0.04930634
+bwd_seg_size_avg: 0.04927985
+bwd_pkt_len_mean: 0.04926373
+bwd_pkts_s: 0.04925577
+fwd_pkt_len_min: 0.04920853
+bwd_iat_max: 0.04892700
 
-Class: FileTransfer
-Top 10 important features (softmax normalized 0-1):
-pkt_len_var: 0.106
-pkt_len_mean: 0.103
-pkt_len_std: 0.101
-pkt_size_avg: 0.101
-bwd_blk_rate_avg: 0.100
-bwd_pkts_b_avg: 0.099
-totlen_bwd_pkts: 0.098
-bwd_iat_max: 0.098
-fwd_blk_rate_avg: 0.097
-bwd_pkt_len_mean: 0.097
-Average score: 0.100
-Total sum: 1.000
+Class: NonVPN-Chat
+Top 20 important features (softmax normalized 0-1):
+pkt_len_min: 0.05616156
+bwd_pkt_len_min: 0.05341987
+fwd_pkt_len_min: 0.05323918
+fwd_seg_size_avg: 0.05095296
+fwd_pkt_len_mean: 0.05019377
+fwd_psh_flags: 0.05007690
+bwd_iat_min: 0.04937078
+init_fwd_win_byts: 0.04931976
+init_bwd_win_byts: 0.04918955
+bwd_pkt_len_mean: 0.04910518
+pkt_len_var: 0.04907272
+bwd_iat_mean: 0.04900825
+pkt_size_avg: 0.04897235
+bwd_pkt_len_max: 0.04893741
+psh_flag_cnt: 0.04892350
+pkt_len_mean: 0.04890634
+bwd_psh_flags: 0.04890349
+bwd_iat_tot: 0.04878089
+fwd_iat_tot: 0.04877474
+bwd_seg_size_avg: 0.04869081
 
-Class: Streaming
-Top 10 important features (softmax normalized 0-1):
-pkt_len_var: 0.102
-bwd_blk_rate_avg: 0.101
-pkt_len_mean: 0.101
-pkt_len_std: 0.100
-fwd_seg_size_avg: 0.100
-flow_iat_max: 0.100
-pkt_size_avg: 0.099
-flow_duration: 0.099
-bwd_iat_max: 0.099
-fwd_blk_rate_avg: 0.099
-Average score: 0.100
-Total sum: 1.000
+Class: NonVPN-Command&Control
+Top 20 important features (softmax normalized 0-1):
+fwd_pkt_len_max: 0.05574606
+totlen_fwd_pkts: 0.05342191
+fwd_pkt_len_mean: 0.05304920
+pkt_len_min: 0.05254067
+fwd_seg_size_avg: 0.05116760
+subflow_fwd_byts: 0.05019251
+pkt_size_avg: 0.05013593
+fwd_pkt_len_min: 0.04972646
+pkt_len_mean: 0.04959778
+pkt_len_max: 0.04928524
+bwd_pkt_len_max: 0.04922491
+bwd_pkt_len_mean: 0.04877812
+bwd_seg_size_avg: 0.04876300
+subflow_bwd_byts: 0.04864473
+totlen_bwd_pkts: 0.04859765
+bwd_pkt_len_min: 0.04841224
+dst_port: 0.04829258
+pkt_len_var: 0.04826542
+src_port: 0.04807920
+subflow_fwd_pkts: 0.04807880
 
-Class: VoIP
-Top 10 important features (softmax normalized 0-1):
-down_up_ratio: 0.102
-fwd_pkt_len_max: 0.101
-totlen_bwd_pkts: 0.101
-bwd_pkt_len_min: 0.100
-subflow_bwd_pkts: 0.100
-subflow_bwd_byts: 0.100
-pkt_len_max: 0.099
-tot_bwd_pkts: 0.099
-bwd_pkt_len_max: 0.099
-pkt_len_mean: 0.099
-Average score: 0.100
-Total sum: 1.000
+Class: NonVPN-FileTransfer
+Top 20 important features (softmax normalized 0-1):
+pkt_len_min: 0.05656522
+fwd_pkt_len_min: 0.05401177
+fwd_pkt_len_max: 0.05298694
+fwd_seg_size_avg: 0.05188040
+fwd_pkt_len_mean: 0.05090697
+totlen_fwd_pkts: 0.05073611
+bwd_pkt_len_min: 0.04945503
+subflow_bwd_byts: 0.04921286
+totlen_bwd_pkts: 0.04917690
+subflow_fwd_byts: 0.04885840
+pkt_len_max: 0.04883046
+pkt_len_var: 0.04880778
+pkt_size_avg: 0.04877200
+pkt_len_std: 0.04869645
+pkt_len_mean: 0.04869224
+bwd_pkt_len_mean: 0.04865495
+bwd_pkt_len_max: 0.04860646
+bwd_seg_size_avg: 0.04846643
+dst_port: 0.04844811
+bwd_iat_mean: 0.04823453
 
-=== NonVPN Services Class Patterns ===
+Class: NonVPN-Streaming
+Top 20 important features (softmax normalized 0-1):
+dst_port: 0.05499381
+init_bwd_win_byts: 0.05192832
+pkt_len_var: 0.05058822
+bwd_pkt_len_std: 0.05040154
+fin_flag_cnt: 0.05011777
+src_port: 0.05002008
+pkt_len_std: 0.04998916
+init_fwd_win_byts: 0.04991598
+bwd_pkt_len_min: 0.04974470
+fwd_pkt_len_min: 0.04968045
+fwd_act_data_pkts: 0.04944174
+fwd_psh_flags: 0.04937953
+pkt_len_min: 0.04935132
+bwd_pkt_len_max: 0.04929787
+bwd_seg_size_avg: 0.04929396
+fwd_iat_max: 0.04927778
+pkt_len_mean: 0.04919237
+pkt_size_avg: 0.04915913
+syn_flag_cnt: 0.04911543
+fwd_iat_mean: 0.04911083
 
-Class: Chat
-Top 10 important features (softmax normalized 0-1):
-pkt_len_min: 0.110
-bwd_pkt_len_min: 0.105
-fwd_pkt_len_min: 0.104
-fwd_seg_size_avg: 0.100
-fwd_pkt_len_mean: 0.098
-fwd_psh_flags: 0.098
-bwd_iat_min: 0.097
-init_fwd_win_byts: 0.097
-init_bwd_win_byts: 0.096
-bwd_pkt_len_mean: 0.096
-Average score: 0.100
-Total sum: 1.000
-
-Class: Command&Control
-Top 10 important features (softmax normalized 0-1):
-fwd_pkt_len_max: 0.108
-totlen_fwd_pkts: 0.104
-fwd_pkt_len_mean: 0.103
-pkt_len_min: 0.102
-fwd_seg_size_avg: 0.099
-subflow_fwd_byts: 0.097
-pkt_size_avg: 0.097
-fwd_pkt_len_min: 0.097
-pkt_len_mean: 0.096
-pkt_len_max: 0.096
-Average score: 0.100
-Total sum: 1.000
-
-Class: FileTransfer
-Top 10 important features (softmax normalized 0-1):
-pkt_len_min: 0.110
-fwd_pkt_len_min: 0.105
-fwd_pkt_len_max: 0.103
-fwd_seg_size_avg: 0.101
-fwd_pkt_len_mean: 0.099
-totlen_fwd_pkts: 0.099
-bwd_pkt_len_min: 0.096
-subflow_bwd_byts: 0.096
-totlen_bwd_pkts: 0.096
-subflow_fwd_byts: 0.095
-Average score: 0.100
-Total sum: 1.000
-
-Class: Streaming
-Top 10 important features (softmax normalized 0-1):
-dst_port: 0.108
-init_bwd_win_byts: 0.102
-pkt_len_var: 0.100
-bwd_pkt_len_std: 0.099
-fin_flag_cnt: 0.099
-src_port: 0.099
-pkt_len_std: 0.099
-init_fwd_win_byts: 0.098
-bwd_pkt_len_min: 0.098
-fwd_pkt_len_min: 0.098
-Average score: 0.100
-Total sum: 1.000
-
-Class: VoIP
-Top 10 important features (softmax normalized 0-1):
-pkt_len_min: 0.107
-pkt_len_max: 0.101
-fwd_pkt_len_min: 0.101
-fwd_pkt_len_max: 0.100
-subflow_fwd_byts: 0.099
-pkt_len_mean: 0.099
-bwd_pkt_len_min: 0.099
-fwd_pkt_len_mean: 0.098
-pkt_size_avg: 0.098
-totlen_fwd_pkts: 0.098
-Average score: 0.100
-Total sum: 1.000
-
-============================================================
-END OF FEATURE PATTERNS REPORT
+Class: NonVPN-VoIP
+Top 20 important features (softmax normalized 0-1):
+pkt_len_min: 0.05445652
+pkt_len_max: 0.05163348
+fwd_pkt_len_min: 0.05145017
+fwd_pkt_len_max: 0.05071024
+subflow_fwd_byts: 0.05064570
+pkt_len_mean: 0.05048953
+bwd_pkt_len_min: 0.05029229
+fwd_pkt_len_mean: 0.05010884
+pkt_size_avg: 0.04991768
+totlen_fwd_pkts: 0.04966787
+bwd_iat_min: 0.04957843
+fwd_seg_size_avg: 0.04948853
+totlen_bwd_pkts: 0.04941415
+pkt_len_std: 0.04921366
+bwd_pkt_len_mean: 0.04911456
+bwd_pkt_len_max: 0.04894000
+subflow_bwd_byts: 0.04877785
+ack_flag_cnt: 0.04871712
+fwd_act_data_pkts: 0.04870875
+subflow_fwd_pkts: 0.04867464
