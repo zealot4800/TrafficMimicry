@@ -1,6 +1,6 @@
-import pandas as pd
 import json
 from datetime import datetime
+from pathlib import Path
 
 # Define the 6 different Feature Categories
 FEATURE_CATEGORIES = {
@@ -49,6 +49,80 @@ FEATURE_CATEGORIES = {
 }
 
 
+RECOMMENDED_FEATURE_BUNDLES = {
+    "VPN-Chat": [1, 2],
+    "VPN-Command&Control": [1, 3],
+    "VPN-FileTransfer": [1, 2, 3],
+    "VPN-Streaming": [1, 2, 3],
+    "VPN-VoIP": [1, 2],
+    "NonVPN-Chat": [1, 4],
+    "NonVPN-Command&Control": [1, 2],
+    "NonVPN-FileTransfer": [1, 2],
+    "NonVPN-Streaming": [1, 4],
+    "NonVPN-VoIP": [1, 2],
+}
+
+
+SLA_CONSTRAINTS = {
+    "VPN-VoIP": {
+        "duration_sec": 10.0,
+        "pps_min": 40.0,
+        "pps_max": 60.0,
+        "mean_iat_ms_min": 20.0,
+        "mean_iat_ms_max": 25.0,
+        "stdev_iat_ms_max": 5.0,
+    },
+    "VPN-Streaming (Live)": {
+        "duration_sec": 5.0,
+        "pps_min": 400.0,
+        "pps_max": 1000.0,
+        "mean_iat_ms_min": 1.0,
+        "mean_iat_ms_max": 2.5,
+        "stdev_iat_ms_max": 3.0,
+    },
+    "VPN-Streaming (VOD)": {
+        "duration_sec": 30.0,
+        "pps_min": 250.0,
+        "pps_max": 800.0,
+        "mean_iat_ms_min": 1.25,
+        "mean_iat_ms_max": 4.0,
+        "stdev_iat_ms_max": 10.0,
+    },
+    "VPN-Chat (text/IM)": {
+        "duration_sec": 60.0,
+        "avg_mode": {
+            "pps_max": 2.0,
+            "mean_iat_ms_min": 500.0,
+        },
+        "burst_mode": {
+            "duration_sec_max": 3.0,
+            "pps_min": 5.0,
+            "pps_max": 20.0,
+            "mean_iat_ms_min": 50.0,
+            "mean_iat_ms_max": 200.0,
+            "stdev_iat_ms_max": 20.0,
+        },
+        "stdev_breach_ms_max": 20.0,
+    },
+    "VPN-Command & Control (SSH/remote ops)": {
+        "duration_sec": 2.0,
+        "pps_min": 10.0,
+        "pps_max": 50.0,
+        "mean_iat_ms_min": 20.0,
+        "mean_iat_ms_max": 100.0,
+        "stdev_iat_ms_max": 10.0,
+    },
+    "VPN-FileTransfer (bulk)": {
+        "duration_sec": 10.0,
+        "pps_min": 200.0,
+        "pps_max": 2000.0,
+        "mean_iat_ms_min": 0.5,
+        "mean_iat_ms_max": 5.0,
+        "stdev_iat_ms_max": 10.0,
+    },
+}
+
+
 def parse_feature_patterns(file_path):
     classes_data = {}
     current_class = None
@@ -93,12 +167,34 @@ def categorize_features_for_class(features, feature_categories):
     
     return category_scores
 
-def main():
-    input_file = 'feature_patterns.txt'
+def main() -> None:
+    base_dir = Path(__file__).resolve().parent
+    input_file = base_dir / 'feature_patterns.txt'
     classes_data = parse_feature_patterns(input_file)
     categorized_results = {}
+
     for class_name, features in classes_data.items():
-        categorized_results[class_name] = categorize_features_for_class(features, FEATURE_CATEGORIES)
+        category_scores = categorize_features_for_class(features, FEATURE_CATEGORIES)
+        if class_name in RECOMMENDED_FEATURE_BUNDLES:
+            category_scores['Recommanded'] = RECOMMENDED_FEATURE_BUNDLES[class_name]
+        sla_key = class_name
+        if sla_key not in SLA_CONSTRAINTS and class_name in (
+            'VPN-Streaming',
+            'VPN-Command&Control',
+            'VPN-FileTransfer',
+            'VPN-Chat',
+        ):
+            sla_lookup = {
+                'VPN-Streaming': 'VPN-Streaming (Live)',
+                'VPN-Command&Control': 'VPN-Command & Control (SSH/remote ops)',
+                'VPN-FileTransfer': 'VPN-FileTransfer (bulk)',
+                'VPN-Chat': 'VPN-Chat (text/IM)',
+            }
+            sla_key = sla_lookup.get(class_name, class_name)
+        if sla_key in SLA_CONSTRAINTS:
+            category_scores['sla_constraints'] = SLA_CONSTRAINTS[sla_key]
+        categorized_results[class_name] = category_scores
+
     output_data = {
         'metadata': {
             'generated_on': datetime.now().strftime('%d %B %Y'),
@@ -108,11 +204,10 @@ def main():
         'classes': categorized_results
     }
     
-    output_file = 'categorized_feature_patterns.json'
-    with open(output_file, 'w') as f:
+    output_file = base_dir / 'categorized_feature_patterns.json'
+    with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(output_data, f, indent=2)
     
 
 if __name__ == "__main__":
     main()
-
