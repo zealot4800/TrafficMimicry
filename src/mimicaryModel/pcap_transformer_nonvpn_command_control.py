@@ -19,12 +19,15 @@ PACKET_LEN_IMP = 0.65469263
 BYTE_COUNTER_IMP = 0.2489356
 PORT_PROTO_IMP = 0.09637178
 
-# SLA Constraints
-SLA_PPS_MIN = 10.0
-SLA_PPS_MAX = 80.0
-SLA_IAT_MIN_MS = 12.5
-SLA_IAT_MAX_MS = 100.0
-SLA_IAT_STDEV_MAX_MS = 120.0
+# SLA Constraints for Non-VPN Command&Control
+SLA_THRESHOLDS = {
+    "pps_band_pct": (0.20, 0.30),           # ±20–30%
+    "mean_iat_band_pct": (0.15, 0.25),      # ±15–25%
+    "stdev_iat_max_pct_of_mean": 2.5,       # Up to +150% vs baseline mean IAT
+    "stdev_iat_abs_max_ms": 120.0,          # Absolute cap of 120 ms
+    "per_gap_margin_pct": (0.10, 0.15),     # ±10–15%
+    "max_total_stretch_pct": 0.08,          # ≤ +8% (≈ +5–8% band)
+}
 
 # Transformation parameters
 FRAGMENT_SIZE = 500
@@ -33,6 +36,39 @@ DUMMY_RATE, DUMMY_SIZE = 0.15, 120
 DUMMY_SPORT, DUMMY_DPORT = 65000, 65001
 MILLISECONDS = 1000.0
 MIN_TIME_INC = 1e-6
+
+def get_baseline_metrics(packets: Iterable) -> Dict[str, float]:
+    """Calculates baseline metrics for a given set of packets."""
+    metrics = MetricsAccumulator()
+    for pkt in packets:
+        metrics.update(float(getattr(pkt, "time", 0.0)))
+    return metrics.as_dict()
+
+def calculate_sla_from_baseline(baseline: Dict[str, float], thresholds: Dict) -> Dict[str, float]:
+    """Calculates dynamic SLA constraints from baseline metrics."""
+    
+    # PPS band
+    pps_baseline = baseline.get("pps", 0.0)
+    pps_margin_min, pps_margin_max = thresholds["pps_band_pct"]
+
+    # IAT band
+    iat_baseline = baseline.get("mean_iat_ms", 0.0)
+    iat_margin_min, iat_margin_max = thresholds["mean_iat_band_pct"]
+
+    # Stdev cap
+    stdev_cap_from_mean = iat_baseline * thresholds["stdev_iat_max_pct_of_mean"]
+    stdev_iat_max = min(
+        stdev_cap_from_mean,
+        thresholds["stdev_iat_abs_max_ms"],
+    )
+
+    return {
+        "SLA_PPS_MIN": pps_baseline * (1 - pps_margin_max),
+        "SLA_PPS_MAX": pps_baseline * (1 + pps_margin_max),
+        "SLA_IAT_MIN_MS": iat_baseline * (1 - iat_margin_max),
+        "SLA_IAT_MAX_MS": iat_baseline * (1 + iat_margin_max),
+        "SLA_IAT_STDEV_MAX_MS": stdev_iat_max,
+    }
 
 @dataclass
 class MetricsAccumulator:
@@ -249,19 +285,18 @@ def apply_recommended_transformations_with_sla(
     if not original_packets:
         raise ValueError("No packets to transform")
     
-    original_metrics = MetricsAccumulator()
-    for pkt in original_packets:
-        original_metrics.update(float(getattr(pkt, "time", 0.0)))
-    original_result = original_metrics.as_dict()
+    original_metrics = get_baseline_metrics(original_packets)
+    sla_constraints = calculate_sla_from_baseline(original_metrics, SLA_THRESHOLDS)
 
     # We will now attempt to transform even if the original is not compliant.
     # The progressive application will check SLA at each step.
-    return apply_progressive_transformations_with_sla_check(original_packets, original_result)
+    return apply_progressive_transformations_with_sla_check(original_packets, original_metrics, sla_constraints)
 
 
 def apply_progressive_transformations_with_sla_check(
     original_packets: List,
-    original_result: Dict[str, float]
+    original_result: Dict[str, float],
+    sla_constraints: Dict[str, float]
 ) -> Tuple[Iterator, Dict[str, float]]:
     
     transformations = [
@@ -285,12 +320,9 @@ def apply_progressive_transformations_with_sla_check(
             
             if not test_packets:
                 continue
-            test_metrics = MetricsAccumulator()
-            for pkt in test_packets:
-                test_metrics.update(float(getattr(pkt, "time", 0.0)))
-            
-            test_result = test_metrics.as_dict()
-            sla_results = validate_sla(test_result)
+
+            test_metrics = get_baseline_metrics(test_packets)
+            sla_results = validate_sla(test_metrics, sla_constraints)
             
             if all(sla_results.values()):
                 current_packets = test_packets
@@ -306,17 +338,16 @@ def apply_progressive_transformations_with_sla_check(
 
     if not current_packets:
         result = original_result.copy()
-        result["sla_validation"] = validate_sla(original_result)
+        result["sla_validation"] = validate_sla(original_result, sla_constraints)
         result["sla_passed"] = True
         result["applied_transformations"] = []
         result["reason"] = "No transformations could be applied while maintaining SLA"
         return iter(_copy_stream(original_packets)), result
-    final_metrics = MetricsAccumulator()
-    for pkt in current_packets:
-        final_metrics.update(float(getattr(pkt, "time", 0.0)))
+
+    final_metrics = get_baseline_metrics(current_packets)
     
-    final_result = final_metrics.as_dict()
-    final_result["sla_validation"] = validate_sla(final_result)
+    final_result = final_metrics
+    final_result["sla_validation"] = validate_sla(final_metrics, sla_constraints)
     final_result["sla_passed"] = all(final_result["sla_validation"].values())
     final_result["applied_transformations"] = applied_transformations
     final_result["transformation_count"] = len(applied_transformations)
@@ -400,13 +431,13 @@ def process_directory(
     return results
 
 
-def validate_sla(metrics: Dict[str, float]) -> Dict[str, bool]:
+def validate_sla(metrics: Dict[str, float], sla_constraints: Dict[str, float]) -> Dict[str, bool]:
     return {
-        "pps_min": metrics.get("pps", 0.0) >= SLA_PPS_MIN,
-        "pps_max": metrics.get("pps", 0.0) <= SLA_PPS_MAX,
-        "mean_iat_ms_min": metrics.get("mean_iat_ms", 0.0) >= SLA_IAT_MIN_MS,
-        "mean_iat_ms_max": metrics.get("mean_iat_ms", 0.0) <= SLA_IAT_MAX_MS,
-        "stdev_iat_ms_max": metrics.get("stdev_iat_ms", 0.0) <= SLA_IAT_STDEV_MAX_MS,
+        "pps_min": metrics.get("pps", 0.0) >= sla_constraints["SLA_PPS_MIN"],
+        "pps_max": metrics.get("pps", 0.0) <= sla_constraints["SLA_PPS_MAX"],
+        "mean_iat_ms_min": metrics.get("mean_iat_ms", 0.0) >= sla_constraints["SLA_IAT_MIN_MS"],
+        "mean_iat_ms_max": metrics.get("mean_iat_ms", 0.0) <= sla_constraints["SLA_IAT_MAX_MS"],
+        "stdev_iat_ms_max": metrics.get("stdev_iat_ms", 0.0) <= sla_constraints["SLA_IAT_STDEV_MAX_MS"],
     }
 
 
