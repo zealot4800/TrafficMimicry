@@ -7,10 +7,12 @@ import random
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, Iterator, List, Optional, Tuple
+import numpy as np
 try:
     from scapy.all import IP, TCP, UDP, Raw, PcapReader, PcapWriter, fragment
 except ImportError as exc:
     raise ImportError("Scapy is required. Install with: pip install scapy") from exc
+
 PACKET_LEN_IMP = 0.40203584
 BYTE_COUNTER_IMP = 0.19804912
 IAT_IMP = 0.2989859
@@ -22,12 +24,14 @@ SLA_THRESHOLDS = {
     "per_gap_margin_pct": (0.07, 0.12),
     "max_total_stretch_pct": 0.05,
 }
+
 FRAGMENT_SIZE = 500
 PADDING_MIN, PADDING_MAX = 50, 600
 DUMMY_RATE, DUMMY_SIZE = 0.15, 120
 DUMMY_SPORT, DUMMY_DPORT = 65000, 65001
 MILLISECONDS = 1000.0
 MIN_TIME_INC = 1e-6
+
 def get_baseline_metrics(packets: List) -> Dict[str, float]:
     if not packets:
         return {
@@ -41,6 +45,7 @@ def get_baseline_metrics(packets: List) -> Dict[str, float]:
     for pkt in packets:
         metrics.update(float(getattr(pkt, "time", 0.0)))
     return metrics.as_dict()
+
 def calculate_sla_from_baseline(baseline_metrics: Dict[str, float], thresholds: Dict) -> Dict[str, float]:
     base_pps = baseline_metrics.get("pps", 0)
     base_iat_ms = baseline_metrics.get("mean_iat_ms", 0)
@@ -59,6 +64,7 @@ def calculate_sla_from_baseline(baseline_metrics: Dict[str, float], thresholds: 
         "SLA_IAT_MAX_MS": iat_max_ms,
         "SLA_IAT_STDEV_MAX_MS": stdev_iat_max_ms,
     }
+
 @dataclass
 class MetricsAccumulator:
     count: int = 0
@@ -67,6 +73,7 @@ class MetricsAccumulator:
     _iat_count: int = 0
     _iat_mean: float = 0.0
     _iat_m2: float = 0.0
+
     def update(self, timestamp: float) -> None:
         timestamp = float(timestamp)
         if self.count == 0:
@@ -78,11 +85,13 @@ class MetricsAccumulator:
                     self._update_iat(delta)
         self.last_time = timestamp
         self.count += 1
+
     def _update_iat(self, delta: float) -> None:
         self._iat_count += 1
         diff = delta - self._iat_mean
         self._iat_mean += diff / self._iat_count
         self._iat_m2 += diff * (delta - self._iat_mean)
+
     def as_dict(self) -> Dict[str, float]:
         duration = 0.0
         if self.first_time is not None and self.last_time is not None:
@@ -97,6 +106,7 @@ class MetricsAccumulator:
             "pps": pps,
             "packet_count": self.count,
         }
+    
 @dataclass(frozen=True)
 class FlowKey:
     src: str
@@ -123,6 +133,7 @@ class FlowKey:
             int(layer.dport),
             proto,
         )
+    
 def _recalc_checksums(pkt) -> None:
     if IP in pkt:
         pkt[IP].len = None
@@ -130,9 +141,11 @@ def _recalc_checksums(pkt) -> None:
     for layer in (TCP, UDP):
         if layer in pkt:
             pkt[layer].chksum = None
+
 def _copy_stream(packets: Iterable) -> Iterator:
     for pkt in packets:
         yield pkt.copy()
+
 def apply_packet_fragmentation(packets: Iterable, importance: float) -> Iterator:
     if importance <= 0:
         yield from _copy_stream(packets)
@@ -143,6 +156,7 @@ def apply_packet_fragmentation(packets: Iterable, importance: float) -> Iterator
             yield from fragment(pkt, fragsize=threshold)
         else:
             yield pkt.copy()
+
 def apply_traffic_padding(packets: Iterable, importance: float) -> Iterator:
     if importance <= 0:
         yield from _copy_stream(packets)
@@ -162,6 +176,7 @@ def apply_traffic_padding(packets: Iterable, importance: float) -> Iterator:
             yield padded
         else:
             yield pkt.copy()
+
 def apply_size_randomization(packets: Iterable, importance: float) -> Iterator:
     for pkt in packets:
         if IP in pkt and Raw in pkt:
@@ -176,6 +191,7 @@ def apply_size_randomization(packets: Iterable, importance: float) -> Iterator:
             yield modified
         else:
             yield pkt.copy()
+
 def inject_dummy_packets(packets: Iterable, importance: float) -> Iterator:
     if importance <= 0:
         yield from _copy_stream(packets)
@@ -190,6 +206,7 @@ def inject_dummy_packets(packets: Iterable, importance: float) -> Iterator:
             dummy.time = getattr(pkt, "time", 0.0) + random.uniform(0.0001, 0.001)
             _recalc_checksums(dummy)
             yield dummy
+
 def apply_packet_duplication(packets: Iterable, importance: float) -> Iterator:
     if importance <= 0:
         yield from _copy_stream(packets)
@@ -201,6 +218,7 @@ def apply_packet_duplication(packets: Iterable, importance: float) -> Iterator:
             dup = pkt.copy()
             dup.time = getattr(pkt, "time", 0.0) + MIN_TIME_INC
             yield dup
+
 def apply_packet_coalescing(packets: Iterable, importance: float) -> Iterator:
     max_coalesce_size = int(1200 * importance)
     buffer: Optional[Tuple[FlowKey, object, bytes]] = None
@@ -233,6 +251,7 @@ def apply_packet_coalescing(packets: Iterable, importance: float) -> Iterator:
             yield pkt.copy()
     if buffer is not None:
         yield buffer[1]
+
 def apply_iat_manipulation(packets: Iterable, importance: float) -> Iterator:
     if importance <= 0:
         yield from _copy_stream(packets)
@@ -245,6 +264,7 @@ def apply_iat_manipulation(packets: Iterable, importance: float) -> Iterator:
             pkt_copy.time += delay
         yield pkt_copy
         last_time = pkt_copy.time
+
 def apply_recommended_transformations_with_sla(
     packets: Iterable,
 ) -> Tuple[Iterator, Dict[str, float]]:
@@ -254,6 +274,7 @@ def apply_recommended_transformations_with_sla(
     original_result = get_baseline_metrics(original_packets)
     sla_constraints = calculate_sla_from_baseline(original_result, SLA_THRESHOLDS)
     return apply_progressive_transformations_with_sla_check(original_packets, original_result, sla_constraints)
+
 def apply_progressive_transformations_with_sla_check(
     original_packets: List,
     original_result: Dict[str, float],
@@ -274,7 +295,7 @@ def apply_progressive_transformations_with_sla_check(
     last_sla_compliant_transformations = []
     for transform_name, transform_func, base_importance in transformations:
         transformation_applied_successfully = False
-        for intensity_scale in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
+        for intensity_scale in np.arange(0.05, 1.05, 0.05):
             test_importance = base_importance * intensity_scale
             test_stream = transform_func(iter(current_packets), test_importance)
             test_packets = list(test_stream)
@@ -312,11 +333,13 @@ def apply_progressive_transformations_with_sla_check(
     final_result["applied_transformations"] = last_sla_compliant_transformations
     final_result["transformation_count"] = len(last_sla_compliant_transformations)
     return iter(final_packets), final_result
+
 def find_pcap_files(directory: Path) -> List[Path]:
     pcap_files = []
     for ext in ['*.pcap', '*.pcapng', '*.cap']:
         pcap_files.extend(directory.rglob(ext))
     return sorted(pcap_files)
+
 def process_directory(
     input_dir: Path,
     output_dir: Path,
@@ -370,6 +393,7 @@ def process_directory(
             print(f"  Error: {e}")
             results[str(relative_path)] = {"error": str(e)}
     return results
+
 def validate_sla(metrics: Dict[str, float], sla_constraints: Dict[str, float]) -> Dict[str, bool]:
     return {
         "pps_min": metrics.get("pps", 0.0) >= sla_constraints["SLA_PPS_MIN"],
@@ -378,6 +402,7 @@ def validate_sla(metrics: Dict[str, float], sla_constraints: Dict[str, float]) -
         "mean_iat_ms_max": metrics.get("mean_iat_ms", 0.0) <= sla_constraints["SLA_IAT_MAX_MS"],
         "stdev_iat_ms_max": metrics.get("stdev_iat_ms", 0.0) <= sla_constraints["SLA_IAT_STDEV_MAX_MS"],
     }
+
 def main():
     parser = argparse.ArgumentParser(description="VPN-Streaming PCAP Transformer")
     parser.add_argument("input", type=Path, help="Input PCAP file or directory")
@@ -426,5 +451,6 @@ def main():
         traceback.print_exc()
         return 1
     return 0
+
 if __name__ == "__main__":
     exit(main())

@@ -5,6 +5,7 @@ import json
 import math
 import os
 import random
+import numpy as np
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, Iterator, List, Optional, Tuple
@@ -59,7 +60,6 @@ MILLISECONDS = 1000.0
 MIN_TIME_INC = 1e-6
 
 def get_baseline_metrics(packets: List) -> Dict[str, float]:
-    """Calculates baseline metrics from a list of packets."""
     if not packets:
         return {
             "duration_sec": 0.0,
@@ -75,16 +75,13 @@ def get_baseline_metrics(packets: List) -> Dict[str, float]:
     return metrics.as_dict()
 
 def calculate_sla_from_baseline(baseline_metrics: Dict[str, float], thresholds: Dict) -> Dict[str, float]:
-    """Calculates dynamic SLA constraints based on baseline metrics and thresholds."""
     base_pps = baseline_metrics.get("pps", 0)
     base_iat_ms = baseline_metrics.get("mean_iat_ms", 0)
 
-    # PPS band (±20–40%)
     _, pps_margin_max = thresholds["pps_band_pct"]
     pps_min = base_pps * (1 - pps_margin_max)
     pps_max = base_pps * (1 + pps_margin_max)
     
-    # IAT band (±20–30%)
     _, iat_margin_max = thresholds["mean_iat_band_pct"]
     iat_min_ms = base_iat_ms * (1 - iat_margin_max)
     iat_max_ms = base_iat_ms * (1 + iat_margin_max)
@@ -383,15 +380,13 @@ def apply_progressive_transformations_with_sla_check(
     current_packets = list(_copy_stream(original_packets))
     applied_transformations = []
     
-    # Keep track of the last state that was known to be SLA-compliant
     last_sla_compliant_packets = list(_copy_stream(original_packets))
     last_sla_compliant_transformations = []
 
     for transform_name, transform_func, base_importance in transformations:
         transformation_applied_successfully = False
-        for intensity_scale in [0.3, 0.5, 0.7, 1.0]:
+        for intensity_scale in np.arange(0.05, 1.05, 0.05):
             test_importance = base_importance * intensity_scale
-            # Apply transformation on top of the current state
             test_stream = transform_func(iter(current_packets), test_importance)
             test_packets = list(test_stream)
             
@@ -401,29 +396,24 @@ def apply_progressive_transformations_with_sla_check(
             test_metrics = get_baseline_metrics(test_packets)
             sla_results = validate_sla(test_metrics, sla_constraints)
             
-            # If the new state is compliant, it becomes the new baseline
             if all(sla_results.values()):
                 current_packets = test_packets
                 
-                # Create a record of the successful transformation
                 current_applied_transformations = applied_transformations + [{
                     "name": transform_name,
                     "importance": test_importance,
                     "intensity_scale": intensity_scale
                 }]
                 
-                # This is now our last known good state
                 last_sla_compliant_packets = current_packets
                 last_sla_compliant_transformations = current_applied_transformations
                 
                 transformation_applied_successfully = True
-                break  # Move to the next transformation type
+                break
         
         if transformation_applied_successfully:
-            # Update the official list of transformations applied
             applied_transformations = last_sla_compliant_transformations
         else:
-            # If no intensity of this transformation worked, revert to the last good state
             current_packets = last_sla_compliant_packets
 
 
@@ -435,7 +425,6 @@ def apply_progressive_transformations_with_sla_check(
         result["reason"] = "No transformations could be applied while maintaining SLA"
         return iter(_copy_stream(original_packets)), result
 
-    # The final state is the last one that was known to be compliant
     final_packets = last_sla_compliant_packets
     final_metrics = get_baseline_metrics(final_packets)
     
