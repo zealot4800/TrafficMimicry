@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generated_on": "03 October 2025",
+    "generated_on": "05 October 2025",
     "description": "Feature importance patterns categorized into 6 groups for each traffic class",
     "categories": [
       "1. Packet Length & Size Features",
@@ -12,25 +12,9 @@
     ]
   },
   "classes": {
-    "VPN-NONVPN-VPN": {
-      "1. Packet Length & Size Features": 0.20963579999999998,
-      "2. Byte/Packet Counters & Ratios": 0.2475369,
-      "3. Inter-Arrival Time (IAT) & Flow Timing": 0.19718917,
-      "4. TCP/Control Flags & Header Features": 0.2443972,
-      "5. Block Rate & Throughput Features": 0.0,
-      "6. Port & Protocol Features": 0.10124094
-    },
-    "VPN-NONVPN-NonVPN": {
-      "1. Packet Length & Size Features": 0.20963579999999998,
-      "2. Byte/Packet Counters & Ratios": 0.2475369,
-      "3. Inter-Arrival Time (IAT) & Flow Timing": 0.19718917,
-      "4. TCP/Control Flags & Header Features": 0.2443972,
-      "5. Block Rate & Throughput Features": 0.0,
-      "6. Port & Protocol Features": 0.10124094
-    },
     "VPN-Chat": {
       "1. Packet Length & Size Features": 0.60471299,
-      "2. Byte/Packet Counters & Ratios": 0.19620453,
+      "2. Byte/Packet Counters & Ratios": 0.19620453000000002,
       "3. Inter-Arrival Time (IAT) & Flow Timing": 0.14988858,
       "4. TCP/Control Flags & Header Features": 0.0491939,
       "5. Block Rate & Throughput Features": 0.0,
@@ -38,26 +22,10 @@
       "Recommanded": [
         1,
         2
-      ],
-      "sla_constraints": {
-        "duration_sec": 60.0,
-        "avg_mode": {
-          "pps_max": 2.0,
-          "mean_iat_ms_min": 500.0
-        },
-        "burst_mode": {
-          "duration_sec_max": 3.0,
-          "pps_min": 5.0,
-          "pps_max": 20.0,
-          "mean_iat_ms_min": 50.0,
-          "mean_iat_ms_max": 200.0,
-          "stdev_iat_ms_max": 20.0
-        },
-        "stdev_breach_ms_max": 20.0
-      }
+      ]
     },
     "VPN-Command&Control": {
-      "1. Packet Length & Size Features": 0.55184973,
+      "1. Packet Length & Size Features": 0.5518497300000001,
       "2. Byte/Packet Counters & Ratios": 0.09907363,
       "3. Inter-Arrival Time (IAT) & Flow Timing": 0.29948767,
       "4. TCP/Control Flags & Header Features": 0.04958895,
@@ -66,15 +34,7 @@
       "Recommanded": [
         1,
         3
-      ],
-      "sla_constraints": {
-        "duration_sec": 2.0,
-        "pps_min": 10.0,
-        "pps_max": 50.0,
-        "mean_iat_ms_min": 20.0,
-        "mean_iat_ms_max": 100.0,
-        "stdev_iat_ms_max": 10.0
-      }
+      ]
     },
     "VPN-FileTransfer": {
       "1. Packet Length & Size Features": 0.30755022,
@@ -87,15 +47,7 @@
         1,
         2,
         3
-      ],
-      "sla_constraints": {
-        "duration_sec": 10.0,
-        "pps_min": 200.0,
-        "pps_max": 2000.0,
-        "mean_iat_ms_min": 0.5,
-        "mean_iat_ms_max": 5.0,
-        "stdev_iat_ms_max": 10.0
-      }
+      ]
     },
     "VPN-Streaming": {
       "1. Packet Length & Size Features": 0.40203584000000003,
@@ -108,15 +60,7 @@
         1,
         2,
         3
-      ],
-      "sla_constraints": {
-        "duration_sec": 5.0,
-        "pps_min": 400.0,
-        "pps_max": 1000.0,
-        "mean_iat_ms_min": 1.0,
-        "mean_iat_ms_max": 2.5,
-        "stdev_iat_ms_max": 3.0
-      }
+      ]
     },
     "VPN-VoIP": {
       "1. Packet Length & Size Features": 0.54867732,
@@ -128,15 +72,7 @@
       "Recommanded": [
         1,
         2
-      ],
-      "sla_constraints": {
-        "duration_sec": 10.0,
-        "pps_min": 40.0,
-        "pps_max": 60.0,
-        "mean_iat_ms_min": 20.0,
-        "mean_iat_ms_max": 25.0,
-        "stdev_iat_ms_max": 5.0
-      }
+      ]
     },
     "NonVPN-Chat": {
       "1. Packet Length & Size Features": 0.55765215,
@@ -163,8 +99,8 @@
       ]
     },
     "NonVPN-FileTransfer": {
-      "1. Packet Length & Size Features": 0.7053331,
-      "2. Byte/Packet Counters & Ratios": 0.19798427000000002,
+      "1. Packet Length & Size Features": 0.7053330999999999,
+      "2. Byte/Packet Counters & Ratios": 0.19798427,
       "3. Inter-Arrival Time (IAT) & Flow Timing": 0.04823453,
       "4. TCP/Control Flags & Header Features": 0.0,
       "5. Block Rate & Throughput Features": 0.0,
@@ -175,7 +111,7 @@
       ]
     },
     "NonVPN-Streaming": {
-      "1. Packet Length & Size Features": 0.49669872,
+      "1. Packet Length & Size Features": 0.49669872000000004,
       "2. Byte/Packet Counters & Ratios": 0.04944174,
       "3. Inter-Arrival Time (IAT) & Flow Timing": 0.09838861,
       "4. TCP/Control Flags & Header Features": 0.25045702999999997,
@@ -188,7 +124,7 @@
     },
     "NonVPN-VoIP": {
       "1. Packet Length & Size Features": 0.6058155000000001,
-      "2. Byte/Packet Counters & Ratios": 0.29588896,
+      "2. Byte/Packet Counters & Ratios": 0.29588896000000003,
       "3. Inter-Arrival Time (IAT) & Flow Timing": 0.04957843,
       "4. TCP/Control Flags & Header Features": 0.04871712,
       "5. Block Rate & Throughput Features": 0.0,
