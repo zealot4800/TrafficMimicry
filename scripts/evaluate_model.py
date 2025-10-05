@@ -1,4 +1,4 @@
-"""Evaluate the NonVPN services classifier on a CSV export."""
+"""Evaluate a classifier model on a CSV export."""
 
 from __future__ import annotations
 
@@ -13,14 +13,14 @@ from sklearn.metrics import accuracy_score, classification_report
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Evaluate nonvpn_services_model.pkl against a CSV dataset")
+    parser = argparse.ArgumentParser(description="Evaluate a model.pkl against a CSV dataset")
     parser.add_argument("csv", type=Path, help="Path to the combined CSV file")
-    parser.add_argument("model", type=Path, help="Path to nonvpn_services_model.pkl")
+    parser.add_argument("model", type=Path, help="Path to the model.pkl file")
     parser.add_argument(
         "--label",
         type=str,
         default=None,
-        help="Label to assign to every row if the CSV lacks a 'label' column (e.g. 'NonVPN-Chat')",
+        help="Label to assign to every row if the CSV lacks a 'label' column (e.g. 'Chat')",
     )
     parser.add_argument(
         "--output-csv",

@@ -1,13 +1,3 @@
-"""Helper wrapper to execute cicflowmeter with relaxed Scapy setup.
-
-Supports:
-* Single file mode (``--pcap`` + ``--csv``)
-* Directory mode (``--pcap-dir`` + ``--csv-dir``) which mirrors the input
-  tree, converts every ``*.pcap``/``*.pcapng`` file found, then merges the
-  per-capture CSVs into a single output when ``--combined-csv`` is supplied,
-  removing the intermediate files.
-"""
-
 from __future__ import annotations
 
 import argparse

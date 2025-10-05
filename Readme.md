@@ -13,21 +13,10 @@ The core strategy for each script is as follows:
 1.  **Feature-Driven Transformations**: Each script contains a `FEATURE_IMPORTANCE` dictionary that assigns a weight to various traffic features (e.g., packet length, inter-arrival time). These weights determine which transformations are prioritized.
 2.  **Progressive Application**: The script iteratively applies transformations (like padding, splitting, and introducing delays) to the PCAP data.
 3.  **SLA Compliance**: After each transformation, the script checks if the modified traffic complies with a set of Service Level Agreement (SLA) constraints defined for the target traffic type.
-4.  **Bypass for Non-Compliant Sources**: A key aspect of the strategy is that the scripts will attempt to transform traffic *even if the source file is already outside the SLA constraints*. The goal is to mold non-compliant traffic *into* a compliant state, rather than rejecting it outright.
 
 ### How to Run
 
 All transformation scripts follow the same command-line structure.
-
-**General Usage:**
-
-```bash
-python src/mimicaryModel/<script_name>.py <input_pcap_directory> <output_pcap_directory> --recommended
-```
-
--   `<script_name>.py`: The specific transformer script to use.
--   `<input_pcap_directory>`: The directory containing the original PCAP files.
--   `<output_pcap_directory>`: The directory where the modified PCAP files will be saved.
 
 ---
 
@@ -143,25 +132,11 @@ These scripts handle workflow tasks like data conversion, model evaluation, and 
     python scripts/run_cicflowmeter.py --pcap-dir /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/ --csv-dir /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified/CSV/
     ```
 
-### `scripts/evaluate_nonvpn_model.py`
+### `scripts/evaluate_model.py`
 
 -   **Purpose**: Evaluates a trained model against a CSV dataset to classify traffic services (for Non-VPN traffic).
 -   **Command**:
     ```bash
-    python scripts/evaluate_nonvpn_model.py /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified/CSV/NON-VPN/Chat_combined.csv src/models/nonvpn_services_model.pkl --label "NonVPN-Chat"
+    python scripts/evaluate_model.py /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified/CSV/NON-VPN/Chat_combined.csv src/models/nonvpn_services_model.pkl --label "NonVPN-Chat"
     ```
-
-### `scripts/split_csv_train_test.py`
-
--   **Purpose**: Splits a large CSV file into training and testing sets.
--   **Command**:
-    ```bash
-    python scripts/split_csv_train_test.py /home/zealot/ICC/TrafficMimicrySystem/dataset/CSV-Dataset/Vpn\&NonVpn/all_traffic.csv /home/zealot/ICC/TrafficMimicrySystem/dataset/CSV-Dataset/Vpn\&NonVpn/ --train_frac 0.8
     ```
-
-## Example Workflow
-
-1.  **Transform PCAPs**: Use a `pcap_transformer_*.py` script to generate a set of modified PCAP files.
-2.  **Convert to CSV**: Run `run_cicflowmeter.py` on the output directory from the previous step to extract flow features.
-3.  **Evaluate Model**: Use `evaluate_nonvpn_model.py` (or a similar evaluation script) with the generated CSV and a pre-trained model to see how the transformed traffic is classified.
-4.  **Prepare for Retraining**: Use `split_csv_train_test.py` to prepare the new dataset for training or retraining classification models.
