@@ -17,9 +17,10 @@ TRANSFORMATION_PARAMS = {
     "FRAGMENT_SIZE": 500,
     "PADDING_MIN": 50,
     "PADDING_MAX": 600,
-    "DUMMY_RATE": 0.1,
+    "DUMMY_RATE": 0.19798427,
     "DUMMY_SIZE": 120,
-    "COALESCE_MAX_SIZE": 1500,
+    "TCP_FLAGS_IMPORTANCE": 0.0,
+    "COALESCE_MAX_SIZE": 1500
 }
 
 @dataclass(frozen=True)
@@ -213,7 +214,10 @@ def process_directory(
             random.seed(seed)
             reader = PcapReader(str(pcap_file))
             all_packets = list(reader)
-            linktype = reader.linktype
+            try:
+                linktype = reader.linktype
+            except AttributeError:
+                linktype = 1
             reader.close()
             if not all_packets:
                 print(f"  Warning: No packets in {relative_path}")
@@ -257,7 +261,10 @@ def main():
         else:
             reader = PcapReader(str(args.input))
             all_packets = list(reader)
-            linktype = reader.linktype
+            try:
+                linktype = reader.linktype
+            except AttributeError:
+                linktype = 1
             reader.close()
             if not all_packets:
                 print("Error: Input PCAP is empty")

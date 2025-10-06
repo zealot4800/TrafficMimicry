@@ -12,7 +12,7 @@ try:
 except ImportError as exc:
     raise ImportError("Scapy is required. Install with: pip install scapy") from exc
 
-# Transformation parameters (fixed for non-SLA version)
+
 TRANSFORMATION_PARAMS = {
     "FRAGMENT_SIZE": 500,
     "PADDING_MIN": 50,
@@ -187,10 +187,10 @@ def apply_transformations(
         params.get("PADDING_MIN", 0),
         params.get("PADDING_MAX", 0)
     ))
-    coalesced_packets = apply_packet_coalescing(
+    coalesced_packets = list(apply_packet_coalescing(
         packets_for_coalescing,
         params.get("COALESCE_MAX_SIZE", 0)
-    )
+    ))
     transformed_packets = padded_packets + coalesced_packets
     transformed_packets.sort(key=lambda p: p.time)
     transformed_packets = list(apply_packet_fragmentation(

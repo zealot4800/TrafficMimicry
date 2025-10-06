@@ -12,21 +12,17 @@ try:
 except ImportError as exc:
     raise ImportError("Scapy is required. Install with: pip install scapy") from exc
 
-# Transformation parameters (fixed for non-SLA version)
 TRANSFORMATION_PARAMS = {
-    "packet_coalescing": {
-        "burst_size": 5,
-        "coalesce_prob": 0.5
-    },
-    "traffic_padding": {
-        "padding_size_range": (10, 50),
-        "padding_prob": 0.5
-    }
+    "FRAGMENT_SIZE": 500,
+    "PADDING_MIN": 50,
+    "PADDING_MAX": 600,
+    "DUMMY_RATE": 0.34572279,
+    "DUMMY_SIZE": 120,
+    "TCP_FLAGS_IMPORTANCE": 0.04901062,
+    "COALESCE_MAX_SIZE": 1500
 }
 
 MILLISECONDS = 1000.0
-
-
 
 @dataclass(frozen=True)
 class FlowKey:
@@ -211,31 +207,32 @@ def apply_tcp_flag_manipulation(packets: List, rate: float) -> List:
 
 def apply_transformations(
     packets: Iterable,
-) -> Tuple[Iterator, Dict[str, float]]:
+) -> Iterator:
+    
     original_packets = list(packets)
     if not original_packets:
         raise ValueError("No packets to transform")
 
     params = TRANSFORMATION_PARAMS
     
-    transformed_packets = list(_copy_stream(original_packets))
-
-    coalesce_packets = [pkt for pkt in transformed_packets if random.random() < 0.5]
-    padding_packets = [pkt for pkt in transformed_packets if pkt not in coalesce_packets]
-
-    coalesced_packets = list(apply_packet_coalescing(
-        coalesce_packets,
-        params.get("COALESCE_MAX_SIZE", 0)
-    ))
+    packets_for_padding = []
+    packets_for_coalescing = []
+    for i, pkt in enumerate(original_packets):
+        if i % 2 == 0:
+            packets_for_padding.append(pkt)
+        else:
+            packets_for_coalescing.append(pkt)
     padded_packets = list(apply_traffic_padding(
-        padding_packets,
+        packets_for_padding,
         params.get("PADDING_MIN", 0),
         params.get("PADDING_MAX", 0)
     ))
-
-    transformed_packets = coalesced_packets + padded_packets
-    random.shuffle(transformed_packets)
-
+    coalesced_packets = list(apply_packet_coalescing(
+        packets_for_coalescing,
+        params.get("COALESCE_MAX_SIZE", 0)
+    ))
+    transformed_packets = padded_packets + coalesced_packets
+    transformed_packets.sort(key=lambda p: p.time)
     transformed_packets = list(apply_packet_fragmentation(
         transformed_packets,
         params.get("FRAGMENT_SIZE", 0)
@@ -245,12 +242,12 @@ def apply_transformations(
         params.get("DUMMY_RATE", 0.0),
         params.get("DUMMY_SIZE", 0)
     )
-    transformed_packets = apply_packet_duplication(
+    transformed_packets = list(apply_tcp_flag_manipulation(
         transformed_packets,
-        params.get("DUPLICATION_RATE", 0.0)
-    )
+        params.get("TCP_FLAGS_IMPORTANCE", 0.0)
+    ))
 
-    return iter(transformed_packets), {}
+    return iter(transformed_packets)
 
 def find_pcap_files(directory: Path) -> List[Path]:
     pcap_files = []
@@ -289,7 +286,7 @@ def process_directory(
             if len(packets) != len(all_packets):
                 print(f"  Info: Filtered {len(all_packets)} -> {len(packets)} IP packets")
             
-            transformed, _ = apply_transformations(packets)
+            transformed = apply_transformations(packets)
             
             writer = PcapWriter(str(output_file), append=False, sync=True, linktype=linktype)
             for pkt in transformed:
