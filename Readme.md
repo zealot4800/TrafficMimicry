@@ -132,11 +132,13 @@ These scripts handle workflow tasks like data conversion, model evaluation, and 
     python scripts/run_cicflowmeter.py --pcap-dir /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/ --csv-dir /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified/CSV/
     ```
 
-### `scripts/evaluate_model.py`
+### `scripts/evaluate_services.py`
 
 -   **Purpose**: Evaluates a trained model against a CSV dataset to classify traffic services (for Non-VPN traffic).
 -   **Command**:
-    ```bash
-    python scripts/evaluate_model.py /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified/CSV/NON-VPN/Chat_combined.csv src/models/nonvpn_services_model.pkl --label "NonVPN-Chat"
-    ```
-    ```
+```bash
+python scripts/evaluate_services.py --skip-missing \
+  --nonvpn-root /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified/CSV/NON-VPN \
+  --vpn-root /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified/CSV/VPN \
+  --output-dir /home/zealot/ICC/TrafficMimicrySystem/results/evaluation
+```
