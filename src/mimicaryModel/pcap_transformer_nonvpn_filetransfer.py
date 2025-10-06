@@ -14,9 +14,9 @@ except ImportError as exc:
 
 # Transformation parameters (fixed for non-SLA version)
 TRANSFORMATION_PARAMS = {
-    "FRAGMENT_SIZE": 500,
-    "PADDING_MIN": 50,
-    "PADDING_MAX": 600,
+    "FRAGMENT_SIZE": 1300, 
+    "PADDING_MIN": 0,  
+    "PADDING_MAX": 64,
     "DUMMY_RATE": 0.19798427,
     "DUMMY_SIZE": 120,
     "TCP_FLAGS_IMPORTANCE": 0.0,

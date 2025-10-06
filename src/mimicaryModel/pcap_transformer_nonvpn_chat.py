@@ -13,9 +13,9 @@ except ImportError as exc:
     raise ImportError("Scapy is required. Install with: pip install scapy") from exc
 
 TRANSFORMATION_PARAMS = {
-    "FRAGMENT_SIZE": 500,
-    "PADDING_MIN": 50,
-    "PADDING_MAX": 600,
+    "FRAGMENT_SIZE": 256,  
+    "PADDING_MIN": 8,  
+    "PADDING_MAX": 64,
     "DUMMY_RATE": 0.0,
     "DUMMY_SIZE": 120,
     "TCP_FLAGS_IMPORTANCE": 0.2464132,

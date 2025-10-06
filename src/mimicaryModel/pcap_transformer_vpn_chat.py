@@ -14,9 +14,9 @@ except ImportError as exc:
 
 
 TRANSFORMATION_PARAMS = {
-    "FRAGMENT_SIZE": 500,
-    "PADDING_MIN": 50,
-    "PADDING_MAX": 600,
+    "FRAGMENT_SIZE": 200,  
+    "PADDING_MIN": 8,  
+    "PADDING_MAX": 48,
     "DUMMY_RATE": 0.19620453,
     "DUMMY_SIZE": 120,
     "TCP_FLAGS_IMPORTANCE": 0.0491939,
