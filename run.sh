@@ -49,51 +49,39 @@ echo "Calculating and plotting FCT CDFs for all services..."
 BASELINE_PCAP_BASE="/home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN"
 TRANSFORMED_PCAP_BASE="/home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M"
 RESULTS_BASE="/home/zealot/ICC/TrafficMimicrySystem/results"
+FCT_RESULTS_BASE="$RESULTS_BASE/fct"
 
 # Ensure the results directory exists
 mkdir -p "$RESULTS_BASE"
+mkdir -p "$FCT_RESULTS_BASE"
 
 # --- Non-VPN Services ---
-echo "Processing Non-VPN - Chat..."
-python scripts/calculate_fct.py --baseline-dir "$BASELINE_PCAP_BASE/NonVPN/Chat/" --transformed-dir "$TRANSFORMED_PCAP_BASE/NonVPN/chat/" --output-file "$RESULTS_BASE/fct_data_nonvpn_chat.json"
-python scripts/plot_fct_cdf.py "$RESULTS_BASE/fct_data_nonvpn_chat.json" "$RESULTS_BASE/fct_cdf_nonvpn_chat.png"
-
-echo "Processing Non-VPN - Command&Control..."
-python scripts/calculate_fct.py --baseline-dir "$BASELINE_PCAP_BASE/NonVPN/Command&Control/" --transformed-dir "$TRANSFORMED_PCAP_BASE/NonVPN/command&control/" --output-file "$RESULTS_BASE/fct_data_nonvpn_command&control.json"
-python scripts/plot_fct_cdf.py "$RESULTS_BASE/fct_data_nonvpn_command&control.json" "$RESULTS_BASE/fct_cdf_nonvpn_command&control.png"
-
-echo "Processing Non-VPN - FileTransfer..."
-python scripts/calculate_fct.py --baseline-dir "$BASELINE_PCAP_BASE/NonVPN/FileTransfer/" --transformed-dir "$TRANSFORMED_PCAP_BASE/NonVPN/FileTransfer/" --output-file "$RESULTS_BASE/fct_data_nonvpn_filetransfer.json"
-python scripts/plot_fct_cdf.py "$RESULTS_BASE/fct_data_nonvpn_filetransfer.json" "$RESULTS_BASE/fct_cdf_nonvpn_filetransfer.png"
-
-echo "Processing Non-VPN - Streaming..."
-python scripts/calculate_fct.py --baseline-dir "$BASELINE_PCAP_BASE/NonVPN/Streaming/" --transformed-dir "$TRANSFORMED_PCAP_BASE/NonVPN/streaming/" --output-file "$RESULTS_BASE/fct_data_nonvpn_streaming.json"
-python scripts/plot_fct_cdf.py "$RESULTS_BASE/fct_data_nonvpn_streaming.json" "$RESULTS_BASE/fct_cdf_nonvpn_streaming.png"
-
-echo "Processing Non-VPN - VoIP..."
-python scripts/calculate_fct.py --baseline-dir "$BASELINE_PCAP_BASE/NonVPN/VoIP/" --transformed-dir "$TRANSFORMED_PCAP_BASE/NonVPN/voip/" --output-file "$RESULTS_BASE/fct_data_nonvpn_voip.json"
-python scripts/plot_fct_cdf.py "$RESULTS_BASE/fct_data_nonvpn_voip.json" "$RESULTS_BASE/fct_cdf_nonvpn_voip.png"
+echo "Processing Non-VPN aggregate FCT..."
+NONVPN_FCT_DIR="$FCT_RESULTS_BASE/nonvpn"
+mkdir -p "$NONVPN_FCT_DIR"
+python scripts/calculate_fct.py \
+  --baseline-dir "$BASELINE_PCAP_BASE/NonVPN/" \
+  --transformed-dir "$TRANSFORMED_PCAP_BASE/NonVPN/" \
+  --output-file "$NONVPN_FCT_DIR/fct_data.json" \
+  --label "Non-VPN"
+python scripts/plot_fct_cdf.py \
+  "$NONVPN_FCT_DIR/fct_data.json" \
+  "$NONVPN_FCT_DIR/fct_cdf.png" \
+  --output-dir "$NONVPN_FCT_DIR"
 
 # --- VPN Services ---
-echo "Processing VPN - Chat..."
-python scripts/calculate_fct.py --baseline-dir "$BASELINE_PCAP_BASE/VPN/Chat/" --transformed-dir "$TRANSFORMED_PCAP_BASE/VPN/chat/" --output-file "$RESULTS_BASE/fct_data_vpn_chat.json"
-python scripts/plot_fct_cdf.py "$RESULTS_BASE/fct_data_vpn_chat.json" "$RESULTS_BASE/fct_cdf_vpn_chat.png"
-
-echo "Processing VPN - Command&Control..."
-python scripts/calculate_fct.py --baseline-dir "$BASELINE_PCAP_BASE/VPN/Command&Control/" --transformed-dir "$TRANSFORMED_PCAP_BASE/VPN/Command&Control/" --output-file "$RESULTS_BASE/fct_data_vpn_command&control.json"
-python scripts/plot_fct_cdf.py "$RESULTS_BASE/fct_data_vpn_command&control.json" "$RESULTS_BASE/fct_cdf_vpn_command&control.png"
-
-echo "Processing VPN - FileTransfer..."
-python scripts/calculate_fct.py --baseline-dir "$BASELINE_PCAP_BASE/VPN/FileTransfer/" --transformed-dir "$TRANSFORMED_PCAP_BASE/VPN/FileTransfer/" --output-file "$RESULTS_BASE/fct_data_vpn_filetransfer.json"
-python scripts/plot_fct_cdf.py "$RESULTS_BASE/fct_data_vpn_filetransfer.json" "$RESULTS_BASE/fct_cdf_vpn_filetransfer.png"
-
-echo "Processing VPN - Streaming..."
-python scripts/calculate_fct.py --baseline-dir "$BASELINE_PCAP_BASE/VPN/Streaming/" --transformed-dir "$TRANSFORMED_PCAP_BASE/VPN/streaming/" --output-file "$RESULTS_BASE/fct_data_vpn_streaming.json"
-python scripts/plot_fct_cdf.py "$RESULTS_BASE/fct_data_vpn_streaming.json" "$RESULTS_BASE/fct_cdf_vpn_streaming.png"
-
-echo "Processing VPN - VoIP..."
-python scripts/calculate_fct.py --baseline-dir "$BASELINE_PCAP_BASE/VPN/VoIP/" --transformed-dir "$TRANSFORMED_PCAP_BASE/VPN/voip/" --output-file "$RESULTS_BASE/fct_data_vpn_voip.json"
-python scripts/plot_fct_cdf.py "$RESULTS_BASE/fct_data_vpn_voip.json" "$RESULTS_BASE/fct_cdf_vpn_voip.png"
+echo "Processing VPN aggregate FCT..."
+VPN_FCT_DIR="$FCT_RESULTS_BASE/vpn"
+mkdir -p "$VPN_FCT_DIR"
+python scripts/calculate_fct.py \
+  --baseline-dir "$BASELINE_PCAP_BASE/VPN/" \
+  --transformed-dir "$TRANSFORMED_PCAP_BASE/VPN/" \
+  --output-file "$VPN_FCT_DIR/fct_data.json" \
+  --label "VPN"
+python scripts/plot_fct_cdf.py \
+  "$VPN_FCT_DIR/fct_data.json" \
+  "$VPN_FCT_DIR/fct_cdf.png" \
+  --output-dir "$VPN_FCT_DIR"
 
 echo "FCT CDF generation complete. Plots are in the results/ directory."
 

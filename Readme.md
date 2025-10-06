@@ -142,3 +142,19 @@ python scripts/evaluate_services.py --skip-missing \
   --vpn-root /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified/CSV/VPN \
   --output-dir /home/zealot/ICC/TrafficMimicrySystem/results/evaluation
 ```
+
+### `scripts/calculate_fct.py`
+
+-   **Purpose**: Calculates Flow Completion Times (FCTs) for baseline and transformed PCAP directories. You can tag the dataset with a label (for example, “Non-VPN” or “VPN”) so downstream plots are titled accordingly. If the supplied directories contain per-service subfolders, the script automatically produces service-level breakdowns in the output JSON.
+-   **Command**:
+    ```bash
+    python scripts/calculate_fct.py --baseline-dir /path/to/baseline --transformed-dir /path/to/transformed --output-file results/fct_data_nonvpn.json --label "Non-VPN"
+    ```
+
+### `scripts/plot_fct_cdf.py`
+
+-   **Purpose**: Plots the cumulative distribution function (CDF) of Flow Completion Time data produced by `scripts/calculate_fct.py`, annotating legend entries with sample counts and using the optional label for the plot title. When the JSON contains service-level entries, service-specific figures are written alongside the aggregated plot (e.g., `fct_cdf_nonvpn_chat.png`).
+-   **Command**:
+    ```bash
+    python scripts/plot_fct_cdf.py results/fct_data_nonvpn.json results/fct_cdf_nonvpn.png
+    ```

@@ -2,7 +2,7 @@ import argparse
 import json
 from pathlib import Path
 from collections import defaultdict
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 try:
     from scapy.all import PcapReader, IP, TCP, UDP
@@ -56,25 +56,110 @@ def calculate_fcts_for_directory(pcap_dir: Path) -> List[float]:
             if len(timestamps) > 1:
                 fct = max(timestamps) - min(timestamps)
                 all_fcts.append(fct)
-                
+
     return all_fcts
 
+
+def _list_service_dirs(root: Path) -> Dict[str, Path]:
+    services: Dict[str, Path] = {}
+    if not root.exists():
+        return services
+    for child in sorted(root.iterdir()):
+        if child.is_dir():
+            services[child.name] = child
+    return services
+
+
+def _summarize_fcts(fcts: List[float]) -> Tuple[List[float], int]:
+    return fcts, len(fcts)
+
 def main():
-    parser = argparse.ArgumentParser(description="Calculate Flow Completion Times (FCTs) from PCAP directories.")
-    parser.add_argument("--baseline-dir", type=Path, required=True, help="Directory with baseline (original) PCAP files.")
-    parser.add_argument("--transformed-dir", type=Path, required=True, help="Directory with transformed PCAP files.")
-    parser.add_argument("--output-file", type=Path, required=True, help="JSON file to save the FCT results.")
+    parser = argparse.ArgumentParser(
+        description="Calculate Flow Completion Times (FCTs) from PCAP directories."
+    )
+    parser.add_argument(
+        "--baseline-dir",
+        type=Path,
+        required=True,
+        help="Directory with baseline (original) PCAP files.",
+    )
+    parser.add_argument(
+        "--transformed-dir",
+        type=Path,
+        required=True,
+        help="Directory with transformed PCAP files.",
+    )
+    parser.add_argument(
+        "--output-file",
+        type=Path,
+        required=True,
+        help="JSON file to save the FCT results.",
+    )
+    parser.add_argument(
+        "--label",
+        type=str,
+        default=None,
+        help=(
+            "Optional label describing this dataset (e.g., 'Non-VPN' or 'VPN')."
+        ),
+    )
     args = parser.parse_args()
 
     print(f"Processing baseline directory: {args.baseline_dir}")
     baseline_fcts = calculate_fcts_for_directory(args.baseline_dir)
-    
+
     print(f"Processing transformed directory: {args.transformed_dir}")
     transformed_fcts = calculate_fcts_for_directory(args.transformed_dir)
 
+    label = args.label or args.baseline_dir.name
+
+    services: Dict[str, Dict[str, List[float] | int]] = {}
+    baseline_services = _list_service_dirs(args.baseline_dir)
+    transformed_services = _list_service_dirs(args.transformed_dir)
+    all_service_names = sorted(set(baseline_services) | set(transformed_services))
+
+    for service_name in all_service_names:
+        baseline_dir = baseline_services.get(service_name)
+        transformed_dir = transformed_services.get(service_name)
+
+        if baseline_dir is None and transformed_dir is None:
+            continue
+
+        if baseline_dir is None:
+            print(f"Warning: No baseline directory found for service '{service_name}'")
+            baseline_service_fcts: List[float] = []
+        else:
+            print(f"  Calculating baseline FCTs for service: {service_name}")
+            baseline_service_fcts = calculate_fcts_for_directory(baseline_dir)
+
+        if transformed_dir is None:
+            print(f"Warning: No transformed directory found for service '{service_name}'")
+            transformed_service_fcts: List[float] = []
+        else:
+            print(f"  Calculating transformed FCTs for service: {service_name}")
+            transformed_service_fcts = calculate_fcts_for_directory(transformed_dir)
+
+        services[service_name] = {
+            "label": service_name,
+            "baseline_fcts": baseline_service_fcts,
+            "baseline_count": len(baseline_service_fcts),
+            "transformed_fcts": transformed_service_fcts,
+            "transformed_count": len(transformed_service_fcts),
+        }
+
+    aggregated_fcts, aggregated_baseline_count = _summarize_fcts(baseline_fcts)
+    aggregated_transformed, aggregated_transformed_count = _summarize_fcts(transformed_fcts)
+
     results = {
-        "baseline_fcts": baseline_fcts,
-        "transformed_fcts": transformed_fcts,
+        "label": label,
+        "aggregated": {
+            "label": label,
+            "baseline_fcts": aggregated_fcts,
+            "baseline_count": aggregated_baseline_count,
+            "transformed_fcts": aggregated_transformed,
+            "transformed_count": aggregated_transformed_count,
+        },
+        "services": services,
     }
 
     args.output_file.parent.mkdir(parents=True, exist_ok=True)
