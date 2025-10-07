@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
+from tqdm import tqdm
 
 try:
     from scapy.all import PcapReader, IP, TCP, UDP
@@ -35,27 +36,33 @@ def calculate_fcts_for_directory(pcap_dir: Path) -> List[float]:
         raise NotADirectoryError(f"Path is not a directory: {pcap_dir}")
 
     all_fcts: List[float] = []
-    pcap_files = sorted(list(pcap_dir.rglob("*.pcap")))
+    pcap_files = sorted(list(pcap_dir.rglob("*.pcap")) + list(pcap_dir.rglob("*.pcapng")))
     if not pcap_files:
-        print(f"Warning: No .pcap files found in {pcap_dir}")
+        print(f"Warning: No .pcap or .pcapng files found in {pcap_dir}")
         return []
 
-    for pcap_file in pcap_files:
-        flows = defaultdict(list)
-        try:
-            with PcapReader(str(pcap_file)) as reader:
-                for packet in reader:
-                    flow_key = get_flow_key(packet)
-                    if flow_key:
-                        flows[flow_key].append(float(packet.time))
-        except Exception as e:
-            print(f"Warning: Could not process {pcap_file}: {e}")
-            continue
+    with tqdm(pcap_files) as pbar:
+        for pcap_file in pbar:
+            pbar.set_description(f"Processing {pcap_file.name}")
+            flows: Dict[tuple, Dict[str, float]] = {}
+            try:
+                with PcapReader(str(pcap_file)) as reader:
+                    for packet in reader:
+                        flow_key = get_flow_key(packet)
+                        if flow_key:
+                            packet_time = float(packet.time)
+                            if flow_key not in flows:
+                                flows[flow_key] = {'start': packet_time, 'end': packet_time}
+                            else:
+                                flows[flow_key]['end'] = packet_time
+            except Exception as e:
+                print(f"Warning: Could not process {pcap_file}: {e}")
+                continue
 
-        for flow_key, timestamps in flows.items():
-            if len(timestamps) > 1:
-                fct = max(timestamps) - min(timestamps)
-                all_fcts.append(fct)
+            for flow_key, times in flows.items():
+                if times['end'] > times['start']:
+                    fct = times['end'] - times['start']
+                    all_fcts.append(fct)
 
     return all_fcts
 

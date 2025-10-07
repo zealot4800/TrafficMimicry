@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Iterable, List
 
 import sys
+from tqdm import tqdm
 
 
 def _parse_args() -> argparse.Namespace:
@@ -68,14 +69,29 @@ def _collect_pcaps(root: Path, patterns: Iterable[str]) -> List[Path]:
 def _convert_file(session_factory, sniffer_cls, pcap: Path, csv_path: Path) -> None:
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     session = session_factory(str(csv_path))
+    try:
+        from scapy.all import PcapReader
 
-    sniffer = sniffer_cls(
-        offline=str(pcap),
-        prn=session.process,
-        store=False,
-    )
-    sniffer.start()
-    sniffer.join()
+        total_packets = sum(1 for _ in PcapReader(str(pcap)))
+    except Exception:
+        total_packets = None
+
+    with tqdm(
+        total=total_packets, unit="pkt", desc=f"Processing {pcap.name}"
+    ) as pbar:
+
+        def process_packet(packet):
+            session.process(packet)
+            pbar.update(1)
+
+        sniffer = sniffer_cls(
+            offline=str(pcap),
+            prn=process_packet,
+            store=False,
+        )
+        sniffer.start()
+        sniffer.join()
+
     session.flush_flows()
 
 
