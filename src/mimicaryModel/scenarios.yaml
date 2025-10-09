@@ -27,6 +27,7 @@ nonvpn_voip:
 nonvpn_streaming:
   input_dir: dataset/VPN&NonVPN/NonVPN/Streaming/
   output_dir_base: dataset/Modified_M/NonVPN/Streaming/
+  max_packet_size: 1200
   multi_mimic:
   - target_service: chat
     target_pcap: dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
@@ -127,4 +128,3 @@ vpn_command_control:
     target_pcap: dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
   - target_service: nonvpn_filetransfer
     target_pcap: dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
-

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import random
+from collections import deque
 from pathlib import Path
 
 import yaml
@@ -75,19 +76,36 @@ def build_dummy_packet(desired_size: int) -> IP:
     return dummy
 
 
-def resize_packet(packet, desired_size: int, mtu: int | None = None):
+def _clone_with_payload(base_packet, payload: bytes):
     """
-    Adjusts a packet's size by padding or trimming payloads to reach the desired size.
+    Clone a packet while replacing the Raw payload bytes.
+    """
+    cloned = clone_packet(base_packet)
+    if payload:
+        if cloned.haslayer(Raw):
+            cloned[Raw].load = payload
+        else:
+            cloned = cloned / Raw(load=payload)
+    else:
+        if cloned.haslayer(Raw):
+            cloned[Raw].load = b""
+    return cloned
+
+
+def resize_packet(packet, desired_size: int, mtu: int | None = None) -> tuple:
+    """
+    Adjusts a packet's size by padding or trimming payloads while preserving data.
+    Returns a tuple of (resized_packet, leftover_packets).
     """
     if desired_size <= 0:
-        return packet
+        return packet, []
 
     current_size = len(packet)
     if mtu is not None:
         desired_size = min(desired_size, mtu)
 
     if desired_size == current_size:
-        return packet
+        return packet, []
 
     if desired_size > current_size:
         pad_len = desired_size - current_size
@@ -96,23 +114,55 @@ def resize_packet(packet, desired_size: int, mtu: int | None = None):
             packet[Raw].load += padding
         else:
             packet = packet / Raw(load=padding)
-        return packet
+        return packet, []
 
-    # Shrinking path
-    shrink_len = current_size - desired_size
-    if packet.haslayer(Raw):
-        raw_payload = bytes(packet[Raw].load)
-        if shrink_len < len(raw_payload):
-            packet[Raw].load = raw_payload[:-shrink_len]
-            return packet
-        elif shrink_len == len(raw_payload):
-            packet[Raw].load = b""
-            return packet
+    # Shrinking path with payload preservation.
+    payload_bytes = bytes(packet[Raw].load) if packet.haslayer(Raw) else b""
+    header_size = current_size - len(payload_bytes)
+    primary_payload_len = max(min(desired_size - header_size, len(payload_bytes)), 0)
+    primary_payload = payload_bytes[:primary_payload_len]
+    leftover_payload = payload_bytes[primary_payload_len:]
 
-    dummy = build_dummy_packet(desired_size)
-    if hasattr(packet, "time"):
-        dummy.time = packet.time
-    return dummy
+    if desired_size < header_size and not payload_bytes:
+        # Cannot shrink below header size without payload; fall back to fragmenting if possible.
+        if IP in packet:
+            fragsize = max(desired_size - len(packet[IP].options) - 20, 8)
+            fragments = fragment(packet, fragsize=fragsize)
+            if fragments:
+                primary = fragments[0]
+                leftovers = fragments[1:]
+                return primary, leftovers
+        dummy = build_dummy_packet(desired_size)
+        if hasattr(packet, "time"):
+            dummy.time = packet.time
+        return dummy, []
+
+    primary_packet = _clone_with_payload(packet, primary_payload)
+    leftovers = []
+
+    if leftover_payload:
+        max_payload = None
+        if mtu is not None:
+            max_payload = max(mtu - header_size, 0)
+
+        # Ensure leftover payload is distributed into additional packets.
+        offset_time = getattr(packet, "time", 0.0)
+        chunk_index = 1
+        while leftover_payload:
+            if max_payload and max_payload > 0:
+                chunk = leftover_payload[:max_payload]
+                leftover_payload = leftover_payload[max_payload:]
+            else:
+                chunk = leftover_payload
+                leftover_payload = b""
+
+            new_packet = _clone_with_payload(packet, chunk)
+            if hasattr(new_packet, "time"):
+                new_packet.time = offset_time + chunk_index * 1e-9
+            leftovers.append(new_packet)
+            chunk_index += 1
+
+    return primary_packet, leftovers
 
 
 def align_packets_to_size_profile(packets: list, size_profile: list[int], mtu: int | None = None) -> list:
@@ -128,25 +178,28 @@ def align_packets_to_size_profile(packets: list, size_profile: list[int], mtu: i
     if not mutable_packets:
         mutable_packets = [build_dummy_packet(size) for size in size_profile]
     else:
-        if len(mutable_packets) > target_count:
-            random.shuffle(mutable_packets)
-            mutable_packets = mutable_packets[:target_count]
-        elif len(mutable_packets) < target_count:
+        if len(mutable_packets) < target_count:
             while len(mutable_packets) < target_count:
                 template = random.choice(mutable_packets)
                 mutable_packets.append(clone_packet(template))
 
-    # Sort packets and sizes to minimize the amount of shrinking necessary.
-    packet_indices = list(range(len(mutable_packets)))
-    packet_indices.sort(key=lambda idx: len(mutable_packets[idx]))
     desired_sizes = sorted(size_profile)
+    available_packets = deque(mutable_packets)
+    aligned_packets = []
 
-    for idx, desired_size in zip(packet_indices, desired_sizes):
-        mutable_packets[idx] = resize_packet(mutable_packets[idx], desired_size, mtu=mtu)
+    for desired_size in desired_sizes:
+        if not available_packets:
+            available_packets.append(build_dummy_packet(desired_size))
+        packet = available_packets.popleft()
+        resized_packet, leftovers = resize_packet(packet, desired_size, mtu=mtu)
+        aligned_packets.append(resized_packet)
+        for leftover in leftovers:
+            available_packets.append(leftover)
 
-    # Shuffle to avoid ordered artifacts.
-    random.shuffle(mutable_packets)
-    return mutable_packets
+    # Append any remaining leftover packets so payload bytes are preserved.
+    aligned_packets.extend(list(available_packets))
+    random.shuffle(aligned_packets)
+    return aligned_packets
 
 
 # Transformation Functions (File-based)
@@ -513,6 +566,7 @@ def main():
         input_dir = Path(scenario_config["input_dir"])
         output_dir_base = Path(scenario_config["output_dir_base"])
         multi_mimic_targets = scenario_config["multi_mimic"]
+        max_packet_size = scenario_config.get("max_packet_size")
         chunk_size = scenario_config.get("chunk_size", 100000) # Packets per chunk
 
         output_dir_base.mkdir(parents=True, exist_ok=True)
@@ -525,11 +579,17 @@ def main():
         for idx, target in enumerate(multi_mimic_targets):
             target_pcap = target["target_pcap"]
             size_dist = get_packet_size_distribution(target_pcap)
+            if max_packet_size is not None:
+                size_dist = [min(packet_size, max_packet_size) for packet_size in size_dist]
             mimic_targets_with_dist.append({
                 "target_pcap": target_pcap,
                 "size_dist": size_dist,
                 "iat_dist": get_iat_distribution(target_pcap),
-                "max_size": max(size_dist) if size_dist else None,
+                "max_size": (
+                    min(max(size_dist), max_packet_size)
+                    if size_dist and max_packet_size is not None
+                    else (max(size_dist) if size_dist else max_packet_size)
+                ),
                 "packet_count": len(size_dist),
                 "total_bytes": sum(size_dist),
                 "target_service": target.get("target_service", f"target_{idx}")
@@ -552,10 +612,17 @@ def main():
                     target_idx = idx % num_targets
                     target_info = mimic_targets_with_dist[target_idx]
                     cloned_packet = clone_packet(packet)
+                    extras = []
                     if IP in cloned_packet and target_info["size_dist"]:
                         desired_size = random.choice(target_info["size_dist"])
-                        cloned_packet = resize_packet(cloned_packet, desired_size, mtu=target_info["max_size"])
+                        cloned_packet, extras = resize_packet(
+                            cloned_packet,
+                            desired_size,
+                            mtu=target_info["max_size"],
+                        )
                     target_packets_map[target_idx].append(cloned_packet)
+                    for extra_packet in extras:
+                        target_packets_map[target_idx].append(extra_packet)
 
             consolidated_packets = []
             current_offset = 0.0
