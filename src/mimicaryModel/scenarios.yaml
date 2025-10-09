@@ -1,130 +1,130 @@
 nonvpn_chat:
-  input_dir: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Chat/
-  output_dir_base: /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/Chat/
+  input_dir: dataset/VPN&NonVPN/NonVPN/Chat/
+  output_dir_base: dataset/Modified_M/NonVPN/Chat/
   multi_mimic:
   - target_service: voip
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
   - target_service: streaming
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
   - target_service: filetransfer
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
   - target_service: command_control
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
 
 nonvpn_voip:
-  input_dir: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/VoIP/
-  output_dir_base: /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/VoIP/
+  input_dir: dataset/VPN&NonVPN/NonVPN/VoIP/
+  output_dir_base: dataset/Modified_M/NonVPN/VoIP/
   multi_mimic:
   - target_service: chat
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
   - target_service: streaming
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
   - target_service: filetransfer
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
   - target_service: command_control
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
 
 nonvpn_streaming:
-  input_dir: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Streaming/
-  output_dir_base: /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/Streaming/
+  input_dir: dataset/VPN&NonVPN/NonVPN/Streaming/
+  output_dir_base: dataset/Modified_M/NonVPN/Streaming/
   multi_mimic:
   - target_service: chat
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
   - target_service: voip
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
   - target_service: filetransfer
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
   - target_service: command_control
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
 
 nonvpn_filetransfer:
-  input_dir: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/FileTransfer/
-  output_dir_base: /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/FileTransfer/
+  input_dir: dataset/VPN&NonVPN/NonVPN/FileTransfer/
+  output_dir_base: dataset/Modified_M/NonVPN/FileTransfer/
   multi_mimic:
   - target_service: chat
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
   - target_service: voip
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
   - target_service: streaming
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
   - target_service: command_control
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
 
 nonvpn_command_control:
-  input_dir: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Command&Control/
-  output_dir_base: /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/Command&Control/
+  input_dir: dataset/VPN&NonVPN/NonVPN/Command&Control/
+  output_dir_base: dataset/Modified_M/NonVPN/Command&Control/
   multi_mimic:
   - target_service: chat
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
   - target_service: voip
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
   - target_service: streaming
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
   - target_service: filetransfer
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
 
 vpn_chat:
-  input_dir: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/VPN/Chat/
-  output_dir_base: /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/VPN/Chat/
+  input_dir: dataset/VPN&NonVPN/VPN/Chat/
+  output_dir_base: dataset/Modified_M/VPN/Chat/
   multi_mimic:
   - target_service: nonvpn_voip
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
   - target_service: nonvpn_streaming
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
   - target_service: nonvpn_filetransfer
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
   - target_service: nonvpn_command_control
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
 
 vpn_voip:
-  input_dir: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/VPN/VoIP/
-  output_dir_base: /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/VPN/VoIP/
+  input_dir: dataset/VPN&NonVPN/VPN/VoIP/
+  output_dir_base: dataset/Modified_M/VPN/VoIP/
   multi_mimic:
   - target_service: nonvpn_chat
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
   - target_service: nonvpn_streaming
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
   - target_service: nonvpn_filetransfer
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
   - target_service: nonvpn_command_control
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
 
 vpn_streaming:
-  input_dir: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/VPN/Streaming/
-  output_dir_base: /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/VPN/Streaming/
+  input_dir: dataset/VPN&NonVPN/VPN/Streaming/
+  output_dir_base: dataset/Modified_M/VPN/Streaming/
   multi_mimic:
   - target_service: nonvpn_chat
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
   - target_service: nonvpn_voip
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
   - target_service: nonvpn_filetransfer
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
   - target_service: nonvpn_command_control
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
 
 vpn_filetransfer:
-  input_dir: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/VPN/FileTransfer/
-  output_dir_base: /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/VPN/FileTransfer/
+  input_dir: dataset/VPN&NonVPN/VPN/FileTransfer/
+  output_dir_base: dataset/Modified_M/VPN/FileTransfer/
   multi_mimic:
   - target_service: nonvpn_chat
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
   - target_service: nonvpn_voip
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
   - target_service: nonvpn_streaming
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
   - target_service: nonvpn_command_control
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Command&Control/nonvpn_command&control_sample.pcap
 
 vpn_command_control:
-  input_dir: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/VPN/Command&Control/
-  output_dir_base: /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/VPN/Command&Control/
+  input_dir: dataset/VPN&NonVPN/VPN/Command&Control/
+  output_dir_base: dataset/Modified_M/VPN/Command&Control/
   multi_mimic:
   - target_service: nonvpn_chat
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Chat/nonvpn_chat_sample.pcap
   - target_service: nonvpn_voip
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap
   - target_service: nonvpn_streaming
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap
   - target_service: nonvpn_filetransfer
-    target_pcap: /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
+    target_pcap: dataset/VPN&NonVPN/NonVPN/FileTransfer/nonvpn_filetransfer_sample.pcap
 
