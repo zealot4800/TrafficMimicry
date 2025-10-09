@@ -48,13 +48,13 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--nonvpn-root",
         type=Path,
-        default=Path("dataset/Modified/CSV/NON-VPN"),
+        default=Path("dataset/Modified_M/CSV/NON-VPN"),
         help="Directory containing per-service Non-VPN CSV outputs",
     )
     parser.add_argument(
         "--vpn-root",
         type=Path,
-        default=Path("dataset/Modified/CSV/VPN"),
+        default=Path("dataset/Modified_M/CSV/VPN"),
         help="Directory containing per-service VPN CSV outputs",
     )
     parser.add_argument(
@@ -110,7 +110,7 @@ def _prepare_features(df: pd.DataFrame, model) -> pd.DataFrame:
 
 
 def _find_combined_csv(root: Path) -> Optional[Path]:
-    candidates = sorted(root.glob("*combined.csv"))
+    candidates = sorted(root.glob("*Combined.csv"))
     if not candidates:
         return None
     return candidates[0]
@@ -121,11 +121,21 @@ def _plot_confusion_matrix(
     labels: Iterable[str],
     output_path: Path,
     title: str,
-) -> None:
+) -> np.ndarray:
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    row_sums = matrix.sum(axis=1, keepdims=True)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        percent_matrix = np.divide(
+            matrix,
+            row_sums,
+            out=np.zeros_like(matrix, dtype=float),
+            where=row_sums != 0,
+        ) * 100.0
+
     fig, ax = plt.subplots(figsize=(8, 6))
-    im = ax.imshow(matrix, interpolation="nearest", cmap=plt.cm.Blues)
-    ax.figure.colorbar(im, ax=ax)
+    im = ax.imshow(percent_matrix, interpolation="nearest", cmap=plt.cm.Blues)
+    cbar = ax.figure.colorbar(im, ax=ax)
+    cbar.set_label("Percentage (%)", rotation=270, labelpad=15)
     ax.set(
         xticks=np.arange(len(labels)),
         yticks=np.arange(len(labels)),
@@ -138,21 +148,22 @@ def _plot_confusion_matrix(
 
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
-    thresh = matrix.max() / 2.0 if matrix.size else 0
+    thresh = percent_matrix.max() / 2.0 if percent_matrix.size else 0
     for i in range(matrix.shape[0]):
         for j in range(matrix.shape[1]):
             ax.text(
                 j,
                 i,
-                format(matrix[i, j], "d"),
+                f"{percent_matrix[i, j]:.1f}%",
                 ha="center",
                 va="center",
-                color="white" if matrix[i, j] > thresh else "black",
+                color="white" if percent_matrix[i, j] > thresh else "black",
             )
 
     fig.tight_layout()
     fig.savefig(output_path, dpi=200)
     plt.close(fig)
+    return percent_matrix
 
 
 def _evaluate_group(
@@ -209,7 +220,7 @@ def _evaluate_group(
     if all_true:
         matrix = confusion_matrix(all_true, all_pred, labels=classes)
         matrix_path = group_output / f"confusion_matrix_{_slugify(config.name)}.png"
-        _plot_confusion_matrix(
+        percent_matrix = _plot_confusion_matrix(
             matrix,
             classes,
             matrix_path,
@@ -219,6 +230,12 @@ def _evaluate_group(
         matrix_csv = group_output / f"confusion_matrix_{_slugify(config.name)}.csv"
         matrix_df = pd.DataFrame(matrix, index=classes, columns=classes)
         matrix_df.to_csv(matrix_csv)
+        percent_csv = (
+            group_output
+            / f"confusion_matrix_{_slugify(config.name)}_percent.csv"
+        )
+        percent_df = pd.DataFrame(percent_matrix, index=classes, columns=classes)
+        percent_df.to_csv(percent_csv)
     else:
         print(f"No samples evaluated for {config.name}; skipping confusion matrix.")
 

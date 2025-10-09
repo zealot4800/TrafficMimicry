@@ -74,6 +74,12 @@ def _list_service_dirs(root: Path) -> Dict[str, Path]:
     for child in sorted(root.iterdir()):
         if child.is_dir():
             services[child.name] = child
+    has_pcap_files = any(
+        child.is_file() and child.suffix.lower() in {".pcap", ".pcapng"}
+        for child in root.iterdir()
+    )
+    if has_pcap_files:
+        services[root.name] = root
     return services
 
 
@@ -112,70 +118,67 @@ def main():
     )
     args = parser.parse_args()
 
-    print(f"Processing baseline directory: {args.baseline_dir}")
-    baseline_fcts = calculate_fcts_for_directory(args.baseline_dir)
-
-    print(f"Processing transformed directory: {args.transformed_dir}")
-    transformed_fcts = calculate_fcts_for_directory(args.transformed_dir)
-
     label = args.label or args.baseline_dir.name
+    print(f"Processing dataset: {label}")
 
-    services: Dict[str, Dict[str, List[float] | int]] = {}
+    services_results: Dict[str, Dict[str, List[float] | int | str]] = {}
+    aggregated_baseline_fcts: List[float] = []
+    aggregated_transformed_fcts: List[float] = []
+
     baseline_services = _list_service_dirs(args.baseline_dir)
     transformed_services = _list_service_dirs(args.transformed_dir)
     all_service_names = sorted(set(baseline_services) | set(transformed_services))
 
+    # Service-specific FCTs
     for service_name in all_service_names:
+        print(f"\nProcessing service: {service_name}")
         baseline_dir = baseline_services.get(service_name)
         transformed_dir = transformed_services.get(service_name)
 
-        if baseline_dir is None and transformed_dir is None:
-            continue
-
         if baseline_dir is None:
-            print(f"Warning: No baseline directory found for service '{service_name}'")
+            print(f"  Warning: No baseline directory found for service '{service_name}'")
             baseline_service_fcts: List[float] = []
         else:
-            print(f"  Calculating baseline FCTs for service: {service_name}")
+            print(f"  Calculating baseline FCTs for: {baseline_dir}")
             baseline_service_fcts = calculate_fcts_for_directory(baseline_dir)
 
         if transformed_dir is None:
-            print(f"Warning: No transformed directory found for service '{service_name}'")
+            print(f"  Warning: No transformed directory found for service '{service_name}'")
             transformed_service_fcts: List[float] = []
         else:
-            print(f"  Calculating transformed FCTs for service: {service_name}")
+            print(f"  Calculating transformed FCTs for: {transformed_dir}")
             transformed_service_fcts = calculate_fcts_for_directory(transformed_dir)
 
-        services[service_name] = {
+        services_results[service_name] = {
             "label": service_name,
             "baseline_fcts": baseline_service_fcts,
             "baseline_count": len(baseline_service_fcts),
             "transformed_fcts": transformed_service_fcts,
             "transformed_count": len(transformed_service_fcts),
         }
-
-    aggregated_fcts, aggregated_baseline_count = _summarize_fcts(baseline_fcts)
-    aggregated_transformed, aggregated_transformed_count = _summarize_fcts(transformed_fcts)
+        
+        aggregated_baseline_fcts.extend(baseline_service_fcts)
+        aggregated_transformed_fcts.extend(transformed_service_fcts)
 
     results = {
         "label": label,
         "aggregated": {
             "label": label,
-            "baseline_fcts": aggregated_fcts,
-            "baseline_count": aggregated_baseline_count,
-            "transformed_fcts": aggregated_transformed,
-            "transformed_count": aggregated_transformed_count,
+            "baseline_fcts": aggregated_baseline_fcts,
+            "baseline_count": len(aggregated_baseline_fcts),
+            "transformed_fcts": aggregated_transformed_fcts,
+            "transformed_count": len(aggregated_transformed_fcts),
         },
-        "services": services,
+        "services": services_results,
     }
 
     args.output_file.parent.mkdir(parents=True, exist_ok=True)
     with open(args.output_file, "w") as f:
         json.dump(results, f, indent=2)
 
-    print(f"FCT results saved to {args.output_file}")
-    print(f"Baseline flows found: {len(baseline_fcts)}")
-    print(f"Transformed flows found: {len(transformed_fcts)}")
+    print(f"\nFCT results saved to {args.output_file}")
+    print(f"Total baseline flows found: {len(aggregated_baseline_fcts)}")
+    print(f"Total transformed flows found: {len(aggregated_transformed_fcts)}")
 
 if __name__ == "__main__":
     main()

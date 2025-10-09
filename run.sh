@@ -1,92 +1,65 @@
 #!/bin/bash
+echo "Running traffic transformations..."
 
-# This script runs all the transformer commands listed in the Readme.md.
+python src/mimicaryModel/transformer.py "nonvpn_chat"
+python scripts/run_cicflowmeter.py --pcap-dir "dataset/Modified_M/NonVPN/Chat/" --csv-dir "dataset/Modified_M/CSV/NON-VPN/Chat/" --combined-csv "dataset/Modified_M/CSV/NON-VPN/Chat/Chat_Combined.csv"
 
-echo "Running Non-VPN Transformers..."
+python src/mimicaryModel/transformer.py "nonvpn_command_control"
+python scripts/run_cicflowmeter.py --pcap-dir "dataset/Modified_M/NonVPN/Command&Control/" --csv-dir "dataset/Modified_M/CSV/NON-VPN/Command&Control/" --combined-csv "dataset/Modified_M/CSV/NON-VPN/Command&Control/Command&Control_Combined.csv"
 
-python src/mimicaryModel/pcap_transformer_nonvpn_chat.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/NonVPN/Chat/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/chat/ 
-python src/mimicaryModel/pcap_transformer_nonvpn_command_control.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/NonVPN/Command\&Control/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/command\&control/ 
-python src/mimicaryModel/pcap_transformer_nonvpn_streaming.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/NonVPN/Streaming/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/streaming/ 
-python src/mimicaryModel/pcap_transformer_nonvpn_voip.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/NonVPN/VoIP/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/voip/ 
+python src/mimicaryModel/transformer.py "nonvpn_voip"
+python scripts/run_cicflowmeter.py --pcap-dir "dataset/Modified_M/NonVPN/VoIP/" --csv-dir "dataset/Modified_M/CSV/NON-VPN/VoIP/" --combined-csv "dataset/Modified_M/CSV/NON-VPN/VoIP/VoIP_Combined.csv"
 
-echo "Running VPN Transformers..."
+python src/mimicaryModel/transformer.py "nonvpn_streaming"
+python scripts/run_cicflowmeter.py --pcap-dir "dataset/Modified_M/NonVPN/Streaming/" --csv-dir "dataset/Modified_M/CSV/NON-VPN/Streaming/" --combined-csv "dataset/Modified_M/CSV/NON-VPN/Streaming/Streaming_Combined.csv"
 
-python src/mimicaryModel/pcap_transformer_vpn_chat.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/VPN/Chat/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/VPN/chat/ 
-python src/mimicaryModel/pcap_transformer_vpn_command_control.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/VPN/Command\&Control/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/VPN/Command\&Control/ 
-python src/mimicaryModel/pcap_transformer_vpn_streaming.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/VPN/Streaming/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/VPN/streaming/
-python src/mimicaryModel/pcap_transformer_vpn_voip.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/VPN/VoIP/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/VPN/voip/ 
+python src/mimicaryModel/transformer.py "nonvpn_filetransfer"
+python scripts/run_cicflowmeter.py --pcap-dir "dataset/Modified_M/NonVPN/FileTransfer/" --csv-dir "dataset/Modified_M/CSV/NON-VPN/FileTransfer/" --combined-csv "dataset/Modified_M/CSV/NON-VPN/FileTransfer/FileTransfer_Combined.csv"
 
-python src/mimicaryModel/pcap_transformer_vpn_filetransfer.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/VPN/FileTransfer/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/VPN/FileTransfer/ 
-python src/mimicaryModel/pcap_transformer_nonvpn_filetransfer.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/NonVPN/FileTransfer/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/FileTransfer/ 
+python src/mimicaryModel/transformer.py "vpn_chat"
+python scripts/run_cicflowmeter.py --pcap-dir "dataset/Modified_M/VPN/Chat/" --csv-dir "dataset/Modified_M/CSV/VPN/Chat/" --combined-csv "dataset/Modified_M/CSV/VPN/Chat/Chat_Combined.csv"
 
-echo "All transformer commands have been executed."
+python src/mimicaryModel/transformer.py "vpn_command_control"
+python scripts/run_cicflowmeter.py --pcap-dir "dataset/Modified_M/VPN/Command&Control/" --csv-dir "dataset/Modified_M/CSV/VPN/Command&Control/" --combined-csv "dataset/Modified_M/CSV/VPN/Command&Control/Command&Control_Combined.csv"
 
-echo "Running CICFlowMeter for each service..."
+python src/mimicaryModel/transformer.py "vpn_voip"
+python scripts/run_cicflowmeter.py --pcap-dir "dataset/Modified_M/VPN/VoIP/" --csv-dir "dataset/Modified_M/CSV/VPN/VoIP/" --combined-csv "dataset/Modified_M/CSV/VPN/VoIP/VoIP_Combined.csv"
 
-# Base directories
-PCAP_BASE="/home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M"
-CSV_BASE="/home/zealot/ICC/TrafficMimicrySystem/dataset/Modified/CSV"
+python src/mimicaryModel/transformer.py "vpn_streaming"
+python scripts/run_cicflowmeter.py --pcap-dir "dataset/Modified_M/VPN/Streaming/" --csv-dir "dataset/Modified_M/CSV/VPN/Streaming/" --combined-csv "dataset/Modified_M/CSV/VPN/Streaming/Streaming_Combined.csv"
 
-# Non-VPN services
-echo "Processing Non-VPN services..."
-python scripts/run_cicflowmeter.py --pcap-dir "$PCAP_BASE/NonVPN/chat/" --csv-dir "$CSV_BASE/NON-VPN/Chat/"
-python scripts/run_cicflowmeter.py --pcap-dir "$PCAP_BASE/NonVPN/command&control/" --csv-dir "$CSV_BASE/NON-VPN/Command&Control/"
-python scripts/run_cicflowmeter.py --pcap-dir "$PCAP_BASE/NonVPN/FileTransfer/" --csv-dir "$CSV_BASE/NON-VPN/FileTransfer/"
-python scripts/run_cicflowmeter.py --pcap-dir "$PCAP_BASE/NonVPN/streaming/" --csv-dir "$CSV_BASE/NON-VPN/Streaming/"
-python scripts/run_cicflowmeter.py --pcap-dir "$PCAP_BASE/NonVPN/voip/" --csv-dir "$CSV_BASE/NON-VPN/VoIP/"
+python src/mimicaryModel/transformer.py "vpn_filetransfer"
+python scripts/run_cicflowmeter.py --pcap-dir "dataset/Modified_M/VPN/FileTransfer/" --csv-dir "dataset/Modified_M/CSV/VPN/FileTransfer/" --combined-csv "dataset/Modified_M/CSV/VPN/FileTransfer/FileTransfer_Combined.csv"
 
-# VPN services
-echo "Processing VPN services..."
-python scripts/run_cicflowmeter.py --pcap-dir "$PCAP_BASE/VPN/chat/" --csv-dir "$CSV_BASE/VPN/Chat/"
-python scripts/run_cicflowmeter.py --pcap-dir "$PCAP_BASE/VPN/Command&Control/" --csv-dir "$CSV_BASE/VPN/Command&Control/"
-python scripts/run_cicflowmeter.py --pcap-dir "$PCAP_BASE/VPN/FileTransfer/" --csv-dir "$CSV_BASE/VPN/FileTransfer/"
-python scripts/run_cicflowmeter.py --pcap-dir "$PCAP_BASE/VPN/streaming/" --csv-dir "$CSV_BASE/VPN/Streaming/"
-python scripts/run_cicflowmeter.py --pcap-dir "$PCAP_BASE/VPN/voip/" --csv-dir "$CSV_BASE/VPN/VoIP/"
 
-echo "CICFlowMeter has finished for all services."
-echo "Calculating and plotting FCT CDFs for all services..."
-
-# Base directories
-BASELINE_PCAP_BASE="/home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN"
-TRANSFORMED_PCAP_BASE="/home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M"
-RESULTS_BASE="/home/zealot/ICC/TrafficMimicrySystem/results"
-FCT_RESULTS_BASE="$RESULTS_BASE/fct"
-
-# Ensure the results directory exists
-mkdir -p "$RESULTS_BASE"
-mkdir -p "$FCT_RESULTS_BASE"
-
-# --- Non-VPN Services ---
-echo "Processing Non-VPN aggregate FCT..."
-NONVPN_FCT_DIR="$FCT_RESULTS_BASE/nonvpn"
-mkdir -p "$NONVPN_FCT_DIR"
+# --- Aggregated Non-VPN ---
+echo "Processing Aggregated Non-VPN FCT..."
 python scripts/calculate_fct.py \
-  --baseline-dir "$BASELINE_PCAP_BASE/NonVPN/" \
-  --transformed-dir "$TRANSFORMED_PCAP_BASE/NonVPN/" \
-  --output-file "$NONVPN_FCT_DIR/fct_data.json" \
+  --baseline-dir "dataset/VPN&NonVPN/NonVPN/" \
+  --transformed-dir "dataset/Modified_M/NonVPN/" \
+  --output-file "results/fct/nonvpn/aggregated_fct_data.json" \
   --label "Non-VPN"
+  
 python scripts/plot_fct_cdf.py \
-  "$NONVPN_FCT_DIR/fct_data.json" \
-  "$NONVPN_FCT_DIR/fct_cdf.png" \
-  --output-dir "$NONVPN_FCT_DIR"
+  "results/fct/nonvpn/aggregated_fct_data.json" \
+  "results/fct/nonvpn/aggregated_fct_cdf.png" \
+  --output-dir "results/fct/nonvpn"
 
-# --- VPN Services ---
-echo "Processing VPN aggregate FCT..."
-VPN_FCT_DIR="$FCT_RESULTS_BASE/vpn"
-mkdir -p "$VPN_FCT_DIR"
+# --- Aggregated VPN ---
+echo "Processing Aggregated VPN FCT..."
+mkdir -p "results/fct/vpn"
 python scripts/calculate_fct.py \
-  --baseline-dir "$BASELINE_PCAP_BASE/VPN/" \
-  --transformed-dir "$TRANSFORMED_PCAP_BASE/VPN/" \
-  --output-file "$VPN_FCT_DIR/fct_data.json" \
+  --baseline-dir "dataset/VPN&NonVPN/VPN/" \
+  --transformed-dir "dataset/Modified_M/VPN/" \
+  --output-file "results/fct/vpn/aggregated_fct_data.json" \
   --label "VPN"
+
 python scripts/plot_fct_cdf.py \
-  "$VPN_FCT_DIR/fct_data.json" \
-  "$VPN_FCT_DIR/fct_cdf.png" \
-  --output-dir "$VPN_FCT_DIR"
+  "results/fct/vpn/aggregated_fct_data.json" \
+  "results/fct/vpn/aggregated_fct_cdf.png" \
+  --output-dir "results/fct/vpn"
 
 echo "FCT CDF generation complete. Plots are in the results/ directory."
 
 echo "Running service-level evaluations and confusion matrices..."
-python scripts/evaluate_services.py --skip-missing --output-dir "${RESULTS_BASE}/evaluation"
-
-echo "Evaluation artifacts placed under ${RESULTS_BASE}/evaluation." 
+python scripts/evaluate_services.py --skip-missing --output-dir "results/evaluation"

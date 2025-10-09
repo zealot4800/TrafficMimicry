@@ -2,159 +2,84 @@
 
 This project is designed to apply adversarial transformations to network traffic captures (PCAP files). The goal is to modify the statistical features of the traffic to mimic a different type of traffic, effectively obfuscating its original signature. This is useful for testing the robustness of traffic classifiers and for research into network privacy and security.
 
-## Core Transformation Scripts
+## Getting Started
 
-The main components of this system are the `pcap_transformer_*.py` scripts located in `src/mimicaryModel/`. Each script is specialized to transform input PCAP files to match the statistical profile of a specific traffic category.
+The traffic transformation process is controlled by a central script, `src/mimicaryModel/transformer.py`, which is configured using a YAML file, `src/mimicaryModel/scenarios.yaml`.
 
-### Transformation Strategy
+### 1. Create Sample PCAP Files
 
-The core strategy for each script is as follows:
+The transformation process uses small sample PCAP files to define the statistical profile of the target traffic type. You can generate these sample files using the `scripts/create_sample_pcaps.py` script.
 
-1.  **Feature-Driven Transformations**: Each script contains a `FEATURE_IMPORTANCE` dictionary that assigns a weight to various traffic features (e.g., packet length, inter-arrival time). These weights determine which transformations are prioritized.
-2.  **Progressive Application**: The script iteratively applies transformations (like padding, splitting, and introducing delays) to the PCAP data.
-3.  **SLA Compliance**: After each transformation, the script checks if the modified traffic complies with a set of Service Level Agreement (SLA) constraints defined for the target traffic type.
+This script will take a small number of packets from the first PCAP file in a given directory and save them to a new file named `{vpn/non-vpn}_{service_name}_sample.pcap`.
 
-### How to Run
+To generate sample files for all your non-VPN and VPN services, you can run the following commands:
 
-All transformation scripts follow the same command-line structure.
+```bash
+# Generate non-VPN samples
+python scripts/create_sample_pcaps.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/NonVPN/Chat/
+python scripts/create_sample_pcaps.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/NonVPN/VoIP/
+python scripts/create_sample_pcaps.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/NonVPN/Streaming/
+python scripts/create_sample_pcaps.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/NonVPN/FileTransfer/
+python scripts/create_sample_pcaps.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/NonVPN/Command\&Control/
 
----
+# Generate VPN samples
+python scripts/create_sample_pcaps.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/VPN/Chat/
+python scripts/create_sample_pcaps.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/VPN/VoIP/
+python scripts/create_sample_pcaps.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/VPN/Streaming/
+python scripts/create_sample_pcaps.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/VPN/FileTransfer/
+python scripts/create_sample_pcaps.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/VPN/Command\&Control/
+```
 
-### Available Transformer Scripts
+### 2. Configure Scenarios
 
-**Non-VPN Transformers:**
+The `src/mimicaryModel/scenarios.yaml` file defines the transformation scenarios. The primary way to use this system is through the "multi-mimic" scenarios, which are designed to make one type of traffic look like a mix of other traffic types.
 
--   `pcap_transformer_nonvpn_chat.py`
-    -   **Strategy**: Mimics non-VPN chat traffic by focusing on altering packet sizes and manipulating TCP control flags. The primary methods are:
-        -   **Packet Length & Size**: Applies Fragmentation, Padding, and Size Randomization.
-        -   **TCP/Control Flags**: Applies TCP Flag Manipulation.
-    -   **Command**:
-        ```bash
-        python src/mimicaryModel/pcap_transformer_nonvpn_chat.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/NonVPN/Chat/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/chat/ --recommended
-        ```
+Here is an example of a multi-mimic scenario:
 
--   `pcap_transformer_nonvpn_command_control.py`
-    -   **Strategy**: Mimics non-VPN Command & Control traffic by focusing on packet sizes and packet/byte counters. The primary methods are:
-        -   **Packet Length & Size**: Applies traffic padding, payload splitting, and merging.
-        -   **Byte/Packet Counters**: Uses dummy packet injection to alter flow density.
-    -   **Command**:
-        ```bash
-        python src/mimicaryModel/pcap_transformer_nonvpn_command_control.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/NonVPN/Command\&Control/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/command\&control/ --recommended
-        ```
+```yaml
+nonvpn_chat_multi_mimic:
+  input_dir: "/home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Chat/"
+  output_dir_base: "/home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/Chat_multi_mimic/"
+  multi_mimic:
+    - target_service: "voip"
+      target_pcap: "/home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/VoIP/nonvpn_voip_sample.pcap"
+    - target_service: "streaming"
+      target_pcap: "/home/zealot/ICC/TrafficMimicrySystem/dataset/VPN&NonVPN/NonVPN/Streaming/nonvpn_streaming_sample.pcap"
+    # ... and so on
+```
 
--   `pcap_transformer_nonvpn_filetransfer.py`
-    -   **Strategy**: Mimics non-VPN file transfer traffic by heavily modifying packet sizes and altering packet counts. The primary methods are:
-        -   **Packet Length & Size**: Applies traffic padding, payload splitting, and merging.
-        -   **Byte/Packet Counters**: Uses dummy packet injection to alter flow density.
-    -   **Command**:
-        ```bash
-        python src/mimicaryModel/pcap_transformer_nonvpn_filetransfer.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/NonVPN/FileTransfer/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/FileTransfer/ --recommended
-        ```
+You can customize these scenarios to change the input directories, output directories, and the target traffic profiles.
 
--   `pcap_transformer_nonvpn_streaming.py`
-    -   **Strategy**: Mimics non-VPN streaming traffic by focusing on packet sizes and TCP control flags. The primary methods are:
-        -   **Packet Length & Size**: Applies traffic padding, payload splitting, and merging.
-        -   **TCP/Control Flags**: Modifies TCP header flags to change flow patterns.
-    -   **Command**:
-        ```bash
-        python src/mimicaryModel/pcap_transformer_nonvpn_streaming.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/NonVPN/Streaming/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/streaming/ --recommended
-        ```
+### 3. Run Transformations
 
--   `pcap_transformer_nonvpn_voip.py`
-    -   **Strategy**: Mimics non-VPN VoIP traffic by focusing on packet sizes and packet counts. The primary methods are:
-        -   **Packet Length & Size**: Applies traffic padding, payload splitting, and merging.
-        -   **Byte/Packet Counters**: Uses dummy packet injection to alter flow density.
-    -   **Command**:
-        ```bash
-        python src/mimicaryModel/pcap_transformer_nonvpn_voip.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/NonVPN/VoIP/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/NonVPN/voip/ --recommended
-        ```
+To run a scenario, execute the `src/mimicaryModel/transformer.py` script with the name of the scenario you want to run:
 
-**VPN Transformers:**
+```bash
+python src/mimicaryModel/transformer.py nonvpn_chat_multi_mimic
+```
 
--   `pcap_transformer_vpn_chat.py`
-    -   **Strategy**: Mimics VPN chat traffic by focusing on packet sizes and altering packet counts. The primary methods are:
-        -   **Packet Length & Size**: Applies traffic padding, payload splitting, and merging.
-        -   **Byte/Packet Counters**: Uses dummy packet injection to alter flow density.
-    -   **Command**:
-        ```bash
-        python src/mimicaryModel/pcap_transformer_vpn_chat.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/VPN/Chat/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/VPN/chat/ --recommended
-        ```
+## Automated Workflow with `run.sh`
 
--   `pcap_transformer_vpn_command_control.py`
-    -   **Strategy**: Mimics VPN Command & Control traffic by focusing on packet sizes and timing. The primary methods are:
-        -   **Packet Length & Size**: Applies traffic padding, payload splitting, and merging.
-        -   **Flow Timing**: Injects random delays (jitter) to alter inter-arrival times.
-    -   **Command**:
-        ```bash
-        python src/mimicaryModel/pcap_transformer_vpn_command_control.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/VPN/Command\&Control/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/VPN/Command\&Control/ --recommended
-        ```
+The `run.sh` script provides an automated way to run all the multi-mimic transformations and the subsequent evaluation steps.
 
--   `pcap_transformer_vpn_filetransfer.py`
-    -   **Strategy**: Mimics VPN file transfer traffic by balancing changes across packet size, packet counts, and timing. The primary methods are:
-        -   **Packet Length & Size**: Applies traffic padding, payload splitting, and merging.
-        -   **Byte/Packet Counters**: Uses dummy packet injection to alter flow density.
-        -   **Flow Timing**: Injects random delays (jitter) to alter inter-arrival times.
-    -   **Command**:
-        ```bash
-        python src/mimicaryModel/pcap_transformer_vpn_filetransfer.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/VPN/FileTransfer/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/VPN/FileTransfer/ --recommended
-        ```
+To run the entire workflow, simply execute the script:
 
--   `pcap_transformer_vpn_streaming.py`
-    -   **Strategy**: Mimics VPN streaming traffic by modifying packet sizes, altering packet counts, and adjusting flow timing. The primary methods are:
-        -   **Packet Length & Size**: Applies traffic padding, payload splitting, and merging.
-        -   **Byte/Packet Counters**: Uses dummy packet injection to alter flow density.
-        -   **Flow Timing**: Injects random delays (jitter) to alter inter-arrival times.
-    -   **Command**:
-        ```bash
-        python src/mimicaryModel/pcap_transformer_vpn_streaming.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/VPN/Streaming/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/VPN/streaming/ --recommended
-        ```
+```bash
+./run.sh
+```
 
--   `pcap_transformer_vpn_voip.py`
-    -   **Strategy**: Mimics VPN VoIP traffic by focusing on packet sizes and packet counts. The primary methods are:
-        -   **Packet Length & Size**: Applies traffic padding, payload splitting, and merging.
-        -   **Byte/Packet Counters**: Uses dummy packet injection to alter flow density.
-    -   **Command**:
-        ```bash
-        python src/mimicaryModel/pcap_transformer_vpn_voip.py /home/zealot/ICC/TrafficMimicrySystem/dataset/VPN\&NonVPN/VPN/VoIP/ /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/VPN/voip/ --recommended
-        ```
-
----
+This will:
+1.  Run all the multi-mimic scenarios defined in `scenarios.yaml`.
+2.  Run the CICFlowMeter tool to generate CSV files from the transformed PCAPs.
+3.  Calculate and plot the Flow Completion Time (FCT) CDFs.
+4.  Run the service-level evaluations.
 
 ## Utility and Evaluation Scripts
 
-These scripts handle workflow tasks like data conversion, model evaluation, and dataset preparation.
+The `scripts/` directory contains several utility and evaluation scripts:
 
-### `scripts/run_cicflowmeter.py`
-
--   **Purpose**: Converts a directory of PCAP files into CSV files containing network flow features using the CICFlowMeter tool.
--   **Command**:
-    ```bash
-    python scripts/run_cicflowmeter.py --pcap-dir /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified_M/ --csv-dir /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified/CSV/
-    ```
-
-### `scripts/evaluate_services.py`
-
--   **Purpose**: Evaluates a trained model against a CSV dataset to classify traffic services (for Non-VPN traffic).
--   **Command**:
-```bash
-python scripts/evaluate_services.py --skip-missing \
-  --nonvpn-root /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified/CSV/NON-VPN \
-  --vpn-root /home/zealot/ICC/TrafficMimicrySystem/dataset/Modified/CSV/VPN \
-  --output-dir /home/zealot/ICC/TrafficMimicrySystem/results/evaluation
-```
-
-### `scripts/calculate_fct.py`
-
--   **Purpose**: Calculates Flow Completion Times (FCTs) for baseline and transformed PCAP directories. You can tag the dataset with a label (for example, “Non-VPN” or “VPN”) so downstream plots are titled accordingly. If the supplied directories contain per-service subfolders, the script automatically produces service-level breakdowns in the output JSON.
--   **Command**:
-    ```bash
-    python scripts/calculate_fct.py --baseline-dir /path/to/baseline --transformed-dir /path/to/transformed --output-file results/fct_data_nonvpn.json --label "Non-VPN"
-    ```
-
-### `scripts/plot_fct_cdf.py`
-
--   **Purpose**: Plots the cumulative distribution function (CDF) of Flow Completion Time data produced by `scripts/calculate_fct.py`, annotating legend entries with sample counts and using the optional label for the plot title. When the JSON contains service-level entries, service-specific figures are written alongside the aggregated plot (e.g., `fct_cdf_nonvpn_chat.png`).
--   **Command**:
-    ```bash
-    python scripts/plot_fct_cdf.py results/fct_data_nonvpn.json results/fct_cdf_nonvpn.png
-    ```
+-   `create_sample_pcaps.py`: Creates small sample PCAP files.
+-   `run_cicflowmeter.py`: Converts PCAPs to CSVs using CICFlowMeter.
+-   `evaluate_services.py`: Evaluates a trained model against a CSV dataset.
+-   `calculate_fct.py`: Calculates Flow Completion Times (FCTs).
+-   `plot_fct_cdf.py`: Plots FCT CDFs.
