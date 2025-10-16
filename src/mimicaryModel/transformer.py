@@ -1,28 +1,17 @@
 from __future__ import annotations
 
 import argparse
-import datetime
 import random
 from collections import deque
 from pathlib import Path
 
 import yaml
-from scapy.all import IP, PcapReader, PcapWriter, Raw, UDP, TCP
-try:
-    from scapy.error import Scapy_Exception, ScapyWarning
-except ImportError:
-    from scapy.error import Scapy_Exception
-
-    class ScapyWarning(Warning):
-        """Fallback warning when scapy.error.ScapyWarning is unavailable."""
-        pass
+from scapy.all import IP, PcapReader, PcapWriter, Raw, UDP
 from scapy.layers.inet import fragment
 from tqdm import tqdm
 
+# 3. Inter-Arrival Time (IAT) & Flow Timing
 def rebase_packet_times(packets: list, start_time: float = 0.0) -> tuple[list, float]:
-    """
-    Shifts packet timestamps so that the first packet starts at start_time.
-    """
     if not packets:
         return packets, start_time
 
@@ -33,15 +22,16 @@ def rebase_packet_times(packets: list, start_time: float = 0.0) -> tuple[list, f
     packets.sort(key=lambda pkt: float(getattr(pkt, "time", 0.0)))
     return packets, float(getattr(packets[-1], "time", start_time))
 
+# 2. Byte/Packet Counters & Ratios
+def get_packet_size_distribution(input_pcap: str) -> list[int]:
+    with PcapReader(input_pcap) as pcap_reader:
+        return [len(packet) for packet in pcap_reader if IP in packet]
 
+# 4. TCP/Control Flags & Header Features
 def clone_packet(packet):
-    """
-    Creates a lightweight copy of a scapy packet while preserving metadata like timestamps.
-    """
     try:
         cloned = packet.copy()
     except Exception:
-        # Fallback: rebuild from raw bytes if direct copy is unsupported.
         try:
             cloned = packet.__class__(bytes(packet))
         except Exception:
@@ -51,10 +41,8 @@ def clone_packet(packet):
     return cloned
 
 
+# 1. Packet Length & Size Features
 def build_dummy_packet(desired_size: int) -> IP:
-    """
-    Builds a synthetic IP/UDP/Raw packet that closely matches the desired size.
-    """
     if desired_size <= 0:
         desired_size = 20
 
@@ -76,26 +64,9 @@ def build_dummy_packet(desired_size: int) -> IP:
     return dummy
 
 
-def _clone_with_payload(base_packet, payload: bytes):
+def resize_packet(packet, desired_size: int, mtu: int | None = None):
     """
-    Clone a packet while replacing the Raw payload bytes.
-    """
-    cloned = clone_packet(base_packet)
-    if payload:
-        if cloned.haslayer(Raw):
-            cloned[Raw].load = payload
-        else:
-            cloned = cloned / Raw(load=payload)
-    else:
-        if cloned.haslayer(Raw):
-            cloned[Raw].load = b""
-    return cloned
-
-
-def resize_packet(packet, desired_size: int, mtu: int | None = None) -> tuple:
-    """
-    Adjusts a packet's size by padding or trimming payloads while preserving data.
-    Returns a tuple of (resized_packet, leftover_packets).
+    Adjusts a packet's size by padding or trimming payloads to reach the desired size.
     """
     if desired_size <= 0:
         return packet, []
@@ -114,61 +85,26 @@ def resize_packet(packet, desired_size: int, mtu: int | None = None) -> tuple:
             packet[Raw].load += padding
         else:
             packet = packet / Raw(load=padding)
-        return packet, []
+        return packet
 
-    # Shrinking path with payload preservation.
-    payload_bytes = bytes(packet[Raw].load) if packet.haslayer(Raw) else b""
-    header_size = current_size - len(payload_bytes)
-    primary_payload_len = max(min(desired_size - header_size, len(payload_bytes)), 0)
-    primary_payload = payload_bytes[:primary_payload_len]
-    leftover_payload = payload_bytes[primary_payload_len:]
+    # Shrinking path
+    shrink_len = current_size - desired_size
+    if packet.haslayer(Raw):
+        raw_payload = bytes(packet[Raw].load)
+        if shrink_len < len(raw_payload):
+            packet[Raw].load = raw_payload[:-shrink_len]
+            return packet
+        elif shrink_len == len(raw_payload):
+            packet[Raw].load = b""
+            return packet
 
-    if desired_size < header_size and not payload_bytes:
-        # Cannot shrink below header size without payload; fall back to fragmenting if possible.
-        if IP in packet:
-            fragsize = max(desired_size - len(packet[IP].options) - 20, 8)
-            fragments = fragment(packet, fragsize=fragsize)
-            if fragments:
-                primary = fragments[0]
-                leftovers = fragments[1:]
-                return primary, leftovers
-        dummy = build_dummy_packet(desired_size)
-        if hasattr(packet, "time"):
-            dummy.time = packet.time
-        return dummy, []
-
-    primary_packet = _clone_with_payload(packet, primary_payload)
-    leftovers = []
-
-    if leftover_payload:
-        max_payload = None
-        if mtu is not None:
-            max_payload = max(mtu - header_size, 0)
-
-        # Ensure leftover payload is distributed into additional packets.
-        offset_time = getattr(packet, "time", 0.0)
-        chunk_index = 1
-        while leftover_payload:
-            if max_payload and max_payload > 0:
-                chunk = leftover_payload[:max_payload]
-                leftover_payload = leftover_payload[max_payload:]
-            else:
-                chunk = leftover_payload
-                leftover_payload = b""
-
-            new_packet = _clone_with_payload(packet, chunk)
-            if hasattr(new_packet, "time"):
-                new_packet.time = offset_time + chunk_index * 1e-9
-            leftovers.append(new_packet)
-            chunk_index += 1
-
-    return primary_packet, leftovers
+    dummy = build_dummy_packet(desired_size)
+    if hasattr(packet, "time"):
+        dummy.time = packet.time
+    return dummy
 
 
 def align_packets_to_size_profile(packets: list, size_profile: list[int], mtu: int | None = None) -> list:
-    """
-    Ensures packets match the size distribution from a target profile.
-    """
     if not size_profile:
         return packets
 
@@ -184,22 +120,13 @@ def align_packets_to_size_profile(packets: list, size_profile: list[int], mtu: i
                 mutable_packets.append(clone_packet(template))
 
     desired_sizes = sorted(size_profile)
-    available_packets = deque(mutable_packets)
-    aligned_packets = []
 
-    for desired_size in desired_sizes:
-        if not available_packets:
-            available_packets.append(build_dummy_packet(desired_size))
-        packet = available_packets.popleft()
-        resized_packet, leftovers = resize_packet(packet, desired_size, mtu=mtu)
-        aligned_packets.append(resized_packet)
-        for leftover in leftovers:
-            available_packets.append(leftover)
+    for idx, desired_size in zip(packet_indices, desired_sizes):
+        mutable_packets[idx] = resize_packet(mutable_packets[idx], desired_size, mtu=mtu)
 
-    # Append any remaining leftover packets so payload bytes are preserved.
-    aligned_packets.extend(list(available_packets))
-    random.shuffle(aligned_packets)
-    return aligned_packets
+    # Shuffle to avoid ordered artifacts.
+    random.shuffle(mutable_packets)
+    return mutable_packets
 
 
 # Transformation Functions (File-based)
@@ -335,9 +262,6 @@ def inject_jitter(input_pcap: str, output_pcap: str, jitter_amount: float):
                 pcap_writer.write(packet)
 
 def get_iat_distribution(input_pcap: str) -> list[float]:
-    """
-    Calculates the inter-arrival time (IAT) distribution of a PCAP file.
-    """
     with PcapReader(input_pcap) as pcap_reader:
         iats = []
         last_timestamp = None
@@ -348,104 +272,9 @@ def get_iat_distribution(input_pcap: str) -> list[float]:
             last_timestamp = packet.time
         return iats
 
-def morph_iat_distribution(source_pcap: str, output_pcap: str, target_pcap: str):
-    """
-    Morphs the inter-arrival time (IAT) distribution of a source PCAP to match the target PCAP.
-    """
-    target_iat_distribution = get_iat_distribution(target_pcap)
-    if not target_iat_distribution:
-        print("Warning: Target PCAP has no packets to create an IAT distribution from.")
-        return
 
-    with PcapReader(source_pcap) as pcap_reader:
-        with PcapWriter(output_pcap, append=True) as pcap_writer:
-            last_timestamp = None
-            for packet in pcap_reader:
-                if last_timestamp is not None:
-                    new_iat = random.choice(target_iat_distribution)
-                    if new_iat < 0:
-                        new_iat = 0
-                    packet.time = last_timestamp + new_iat
-                
-                pcap_writer.write(packet)
-                last_timestamp = packet.time
-
-def mimic_time_of_day(input_pcap: str, output_pcap: str, target_time: str):
-    """
-    Shifts the timestamps of all packets in a PCAP file to a new time of day.
-    """
-    try:
-        target_t = datetime.strptime(target_time, "%H:%M:%S").time()
-    except ValueError:
-        print(f"Error: Invalid time format for target_time. Please use HH:MM:SS.")
-        return
-
-    with PcapReader(input_pcap) as pcap_reader:
-        with PcapWriter(output_pcap, append=True) as pcap_writer:
-            first_packet = True
-            time_shift = 0.0
-
-            first_pkt = next(iter(pcap_reader), None)
-            if first_pkt is None:
-                return
-
-            original_dt = datetime.fromtimestamp(float(first_pkt.time))
-            new_start_dt = datetime.combine(original_dt.date(), target_t)
-            time_shift = (new_start_dt - original_dt).total_seconds()
-            
-            pcap_reader = PcapReader(input_pcap)
-            for packet in pcap_reader:
-                packet.time += time_shift
-                pcap_writer.write(packet)
-
-def get_pcap_stats(pcap_path: str) -> tuple[int, float]:
-    packet_count = 0
-    first_packet_time = None
-    last_packet_time = None
-    try:
-        with PcapReader(pcap_path) as pcap_reader:
-            for packet in pcap_reader:
-                if first_packet_time is None:
-                    first_packet_time = float(packet.time)
-                last_packet_time = float(packet.time)
-                packet_count += 1
-    except Scapy_Exception:
-        # This can happen for empty or corrupt pcap files
-        return 0, 0.0
-
-    if packet_count < 2:
-        return packet_count, 0.0
-    
-    duration = last_packet_time - first_packet_time
-    
-    return packet_count, duration
-
-def morph_packet_size_distribution_on_list(packets: list, target_pcap: str) -> list:
-    target_distribution = get_packet_size_distribution(target_pcap)
-    if not target_distribution:
-        print("Warning: Target PCAP has no packets to create a distribution from.")
-        return packets
-
-    morphed_packets = []
-    for packet in packets:
-        if IP in packet:
-            target_size = random.choice(target_distribution)
-            current_size = len(packet)
-            if current_size < target_size:
-                padding_size = target_size - current_size
-                padding = b'\x00' * padding_size
-                
-                if packet.haslayer(Raw):
-                    packet[Raw].load += padding
-                else:
-                    packet = packet / Raw(load=padding)
-        morphed_packets.append(packet)
-    return morphed_packets
-
+# 3. Inter-Arrival Time (IAT) & Flow Timing
 def morph_iat_distribution_on_list_with_dist(packets: list, target_iat_distribution: list[float]) -> list:
-    """
-    Morphs IAT on a list of packets using a pre-calculated distribution.
-    """
     if not target_iat_distribution:
         return packets
 
@@ -456,59 +285,16 @@ def morph_iat_distribution_on_list_with_dist(packets: list, target_iat_distribut
             new_iat = random.choice(target_iat_distribution)
             if new_iat < 0:
                 new_iat = 0
-            # scapy packets are mutable, so this modifies the packet in the list
             packet.time = last_timestamp + new_iat
-        
+
         morphed_packets.append(packet)
         last_timestamp = packet.time
-            
+
     return morphed_packets
 
-def morph_iat_distribution_on_list(packets: list, target_pcap: str) -> list:
-    target_iat_distribution = get_iat_distribution(target_pcap)
-    if not target_iat_distribution:
-        print("Warning: Target PCAP has no packets to create an IAT distribution from.")
-        return packets
-    return morph_iat_distribution_on_list_with_dist(packets, target_iat_distribution)
 
-def morph_packet_rate_on_list(packets: list, target_pcap: str) -> list:
-    if not packets:
-        return []
-
-    target_packet_count, target_duration = get_pcap_stats(target_pcap)
-    if target_duration == 0.0:
-        print("Warning: Target PCAP has zero duration, cannot calculate packet rate.")
-        return packets
-
-    target_packet_rate = target_packet_count / target_duration
-
-    source_duration = float(packets[-1].time - packets[0].time)
-    if source_duration == 0.0:
-        return packets
-
-    expected_packet_count = int(source_duration * target_packet_rate)
-    current_packet_count = len(packets)
-
-    if current_packet_count == expected_packet_count:
-        return packets
-    elif current_packet_count > expected_packet_count:
-        # Drop packets by shuffling and truncating - more memory efficient than random.sample
-        random.shuffle(packets)
-        del packets[expected_packet_count:]
-        return packets
-    else:
-        # Duplicate packets
-        morphed_packets = list(packets)
-        packets_to_add = expected_packet_count - current_packet_count
-        for _ in range(packets_to_add):
-            morphed_packets.append(random.choice(packets))
-        random.shuffle(morphed_packets)
-        return morphed_packets
-
+# 3. Inter-Arrival Time (IAT) & Flow Timing
 def stream_pcap_in_chunks(pcap_path: str, chunk_size: int):
-    """
-    Generator that reads a PCAP file and yields chunks of packets.
-    """
     try:
         with PcapReader(pcap_path) as pcap_reader:
             chunk = []
@@ -522,31 +308,11 @@ def stream_pcap_in_chunks(pcap_path: str, chunk_size: int):
                     i = 0
             if chunk:
                 yield chunk
-    except Scapy_Exception as e:
+    except Exception as e:
         print(f"Error reading {pcap_path}: {e}")
 
-def inject_jitter_on_list(packets: list, jitter_amount: float) -> list:
-    """
-    Legacy passthrough helper that leaves packets unchanged.
-    """
-    return packets
 
-def apply_fragmentation_on_list(packets: list, mtu: int = 1500) -> list:
-    """
-    Applies IP fragmentation to packets in a list that exceed the MTU.
-    """
-    fragmented_packets = []
-    for packet in packets:
-        if IP in packet and len(packet) > mtu:
-            ip_header_len = packet[IP].ihl * 4
-            frag_payload_size = (mtu - ip_header_len) // 8 * 8
-            
-            fragments = fragment(packet, fragsize=frag_payload_size)
-            fragmented_packets.extend(fragments)
-        else:
-            fragmented_packets.append(packet)
-    return fragmented_packets
-
+# 2. Byte/Packet Counters & Ratios
 def main():
     parser = argparse.ArgumentParser(description="PCAP Transformer")
     parser.add_argument("scenario", help="Name of the scenario to run from the YAML file.")
@@ -562,19 +328,15 @@ def main():
     scenario_config = config[args.scenario]
 
     if "multi_mimic" in scenario_config:
-        # Handle multi-mimic scenario with chunking to manage memory
         input_dir = Path(scenario_config["input_dir"])
         output_dir_base = Path(scenario_config["output_dir_base"])
         multi_mimic_targets = scenario_config["multi_mimic"]
-        max_packet_size = scenario_config.get("max_packet_size")
         chunk_size = scenario_config.get("chunk_size", 100000) # Packets per chunk
 
         output_dir_base.mkdir(parents=True, exist_ok=True)
         
         all_files = list(input_dir.rglob("*.pcap")) + list(input_dir.rglob("*.pcapng"))
         input_files = [f for f in all_files if not f.name.endswith("_sample.pcap")]
-
-        # Pre-calculate target distributions/statistics to avoid re-reading files in the loop
         mimic_targets_with_dist = []
         for idx, target in enumerate(multi_mimic_targets):
             target_pcap = target["target_pcap"]
@@ -637,8 +399,7 @@ def main():
                 packets_for_target, current_offset = rebase_packet_times(packets_for_target, start_time=current_offset)
                 if packets_for_target:
                     current_offset = float(getattr(packets_for_target[-1], "time", current_offset))
-                    # Add a small offset so the next target's packets do not overlap in timestamps.
-                    current_offset += 1e-6
+                    current_offset += 1e-12
                 consolidated_packets.extend(packets_for_target)
 
             consolidated_packets.sort(key=lambda pkt: float(getattr(pkt, "time", 0.0)))
@@ -646,59 +407,6 @@ def main():
             with PcapWriter(str(output_file)) as final_pcap_writer:
                 for pkt in consolidated_packets:
                     final_pcap_writer.write(pkt)
-
-    else:
-        # Handle single transformation pipeline
-        input_dir = Path(scenario_config["input_dir"])
-        output_dir = Path(scenario_config["output_dir"])
-        transformations = scenario_config.get("transformations", [])
-
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        all_files = list(input_dir.rglob("*.pcap")) + list(input_dir.rglob("*.pcapng"))
-        input_files = [f for f in all_files if not f.name.endswith("_sample.pcap")]
-
-        for input_file in tqdm(input_files, desc=f"Processing scenario: {args.scenario}"):
-            output_file = output_dir / input_file.name
-            
-            if not transformations:
-                # If no transformations, just copy the file
-                output_file.write_bytes(input_file.read_bytes())
-                continue
-
-            current_input = str(input_file)
-            temp_files = []
-
-            for i, transform in enumerate(transformations):
-                # Make a copy of the params to avoid modifying the original config dict
-                params = dict(transform)
-                transform_type = params.pop("type")
-                
-                is_last_transform = (i == len(transformations) - 1)
-                
-                if is_last_transform:
-                    current_output = str(output_file)
-                else:
-                    temp_file_path = output_dir / f"{input_file.stem}_{i}.tmp"
-                    current_output = str(temp_file_path)
-                    temp_files.append(temp_file_path)
-
-                try:
-                    transform_func = globals()[transform_type]
-                    transform_func(current_input, current_output, **params)
-                    current_input = current_output
-                except Exception as e:
-                    print(f"Error during transformation {transform_type} on {input_file}: {e}")
-                    # Stop processing this file on error
-                    break
-            
-            # Clean up temporary files
-            for temp_file in temp_files:
-                try:
-                    temp_file.unlink()
-                except OSError as e:
-                    print(f"Error removing temp file {temp_file}: {e}")
-
 
 if __name__ == "__main__":
     main()

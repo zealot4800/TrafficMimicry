@@ -1,17 +1,21 @@
-import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, confusion_matrix
-import joblib
 import os
-from imblearn.over_sampling import SMOTE
+from pathlib import Path
+
+import joblib
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import seaborn as sns
+from imblearn.over_sampling import SMOTE
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.model_selection import train_test_split
 
 # Paths
-dataset_dir = '../../../dataset/VPN&NonVPN'
-model_dir = 'models'
-os.makedirs(model_dir, exist_ok=True)
+dataset_dir = '/home/zealot/ICC/TrafficMimicrySystem/dataset/CSV-Dataset/Vpn&NonVpn'
+model_dir = Path(__file__).resolve().parent / "models"
+model_dir.mkdir(parents=True, exist_ok=True)
 
 # Load the combined dataset
 df_vpn = pd.read_csv(os.path.join(dataset_dir, 'all_traffic_vpn.csv'))
@@ -19,17 +23,49 @@ df_nonvpn = pd.read_csv(os.path.join(dataset_dir, 'all_traffic_non-vpn.csv'))
 df = pd.concat([df_vpn, df_nonvpn], ignore_index=True)
 
 # Create category column: VPN or NonVPN
+df['label'] = df['label'].astype(str)
 df['category'] = df['label'].apply(lambda x: 'VPN' if x.startswith('VPN-') else 'NonVPN')
 
+def _select_numeric_features(frame: pd.DataFrame, drop_columns: list[str]) -> pd.DataFrame:
+    """Select clean numeric feature columns from the provided frame."""
+    working = frame.drop(columns=drop_columns, errors='ignore').copy()
+    numeric = working.select_dtypes(include=[float, int])
+    numeric.columns = [col.strip() for col in numeric.columns]
+    numeric = numeric.loc[:, ~numeric.columns.duplicated()]
+    numeric = numeric.replace([np.inf, -np.inf], np.nan)
+    numeric = numeric.dropna(axis=1, how='all')
+    return numeric
+
+
 # Features: all columns except label and category, and only numeric
-features = df.select_dtypes(include=[float, int]).drop(['label'], axis=1, errors='ignore')
-features = features.drop(['category'], axis=1, errors='ignore')
+features = _select_numeric_features(df, ['label', 'category'])
+
+
+def impute_train_test(X_train, X_test):
+    """Impute missing values using the median of the training split."""
+    valid_columns = X_train.columns[~X_train.isna().all()]
+    X_train = X_train[valid_columns]
+    X_test = X_test.reindex(columns=valid_columns)
+
+    imputer = SimpleImputer(strategy='median')
+    X_train_imputed = pd.DataFrame(
+        imputer.fit_transform(X_train),
+        columns=X_train.columns,
+        index=X_train.index,
+    )
+    X_test_imputed = pd.DataFrame(
+        imputer.transform(X_test),
+        columns=X_test.columns,
+        index=X_test.index,
+    )
+    return X_train_imputed, X_test_imputed
 
 # Level 1: VPN vs NonVPN classification
 X_level1 = features
 y_level1 = df['category']
 
 X_train1, X_test1, y_train1, y_test1 = train_test_split(X_level1, y_level1, test_size=0.2, random_state=42, stratify=y_level1)
+X_train1, X_test1 = impute_train_test(X_train1, X_test1)
 
 model_level1 = RandomForestClassifier(n_estimators=500, random_state=42)
 model_level1.fit(X_train1, y_train1)
@@ -45,21 +81,21 @@ sns.heatmap(cm1, annot=True, fmt='.2%', cmap='Blues', xticklabels=['NonVPN', 'VP
 plt.title('Level 1: VPN vs Non-VPN Confusion Matrix (Normalized)')
 plt.xlabel('Predicted')
 plt.ylabel('Actual')
-plt.savefig(os.path.join(model_dir, 'level1_confusion_matrix.png'))
+plt.savefig(model_dir / 'level1_confusion_matrix.png')
 plt.show()
 
 # Save Level 1 model
-joblib.dump(model_level1, os.path.join(model_dir, 'level1_model.pkl'))
+joblib.dump(model_level1, model_dir / 'level1_model.pkl')
 
 # Level 2a: VPN services
 df_vpn = df[df['category'] == 'VPN'].copy()
 df_vpn['service'] = df_vpn['label'].apply(lambda x: x.split('-')[1])
 
-X_vpn = df_vpn.select_dtypes(include=[float, int]).drop(['label'], axis=1, errors='ignore')
-X_vpn = X_vpn.drop(['category', 'service'], axis=1, errors='ignore')
+X_vpn = _select_numeric_features(df_vpn, ['label', 'category', 'service'])
 y_vpn = df_vpn['service']
 
 X_train_vpn, X_test_vpn, y_train_vpn, y_test_vpn = train_test_split(X_vpn, y_vpn, test_size=0.2, random_state=42, stratify=y_vpn)
+X_train_vpn, X_test_vpn = impute_train_test(X_train_vpn, X_test_vpn)
 
 smote = SMOTE(random_state=42)
 X_train_vpn_sm, y_train_vpn_sm = smote.fit_resample(X_train_vpn, y_train_vpn)
@@ -78,24 +114,24 @@ sns.heatmap(cm_vpn, annot=True, fmt='.2%', cmap='Greens', xticklabels=sorted(y_v
 plt.title('VPN Services Confusion Matrix (Normalized)')
 plt.xlabel('Predicted')
 plt.ylabel('Actual')
-plt.savefig(os.path.join(model_dir, 'vpn_services_confusion_matrix.png'))
+plt.savefig(model_dir / 'vpn_services_confusion_matrix.png')
 plt.show()
 
 # Save VPN model
-joblib.dump(model_vpn, os.path.join(model_dir, 'vpn_services_model.pkl'))
+joblib.dump(model_vpn, model_dir / 'vpn_services_model.pkl')
 
 # Level 2b: NonVPN services
 df_nonvpn = df[df['category'] == 'NonVPN'].copy()
 df_nonvpn['service'] = df_nonvpn['label'].apply(lambda x: x.split('-')[1] if '-' in x else x)
 
-X_nonvpn = df_nonvpn.select_dtypes(include=[float, int]).drop(['label'], axis=1, errors='ignore')
-X_nonvpn = X_nonvpn.drop(['category', 'service'], axis=1, errors='ignore')
+X_nonvpn = _select_numeric_features(df_nonvpn, ['label', 'category', 'service'])
 y_nonvpn = df_nonvpn['service']
 
 X_train_nonvpn, X_test_nonvpn, y_train_nonvpn, y_test_nonvpn = train_test_split(X_nonvpn, y_nonvpn, test_size=0.2, random_state=42, stratify=y_nonvpn)
+X_train_nonvpn, X_test_nonvpn = impute_train_test(X_train_nonvpn, X_test_nonvpn)
 
 smote = SMOTE(random_state=42)
-X_train_nonvpn_sm, y_train_nonvpn_sm = smote.fit_resample(X_nonvpn, y_nonvpn)
+X_train_nonvpn_sm, y_train_nonvpn_sm = smote.fit_resample(X_train_nonvpn, y_train_nonvpn)
 
 model_nonvpn = RandomForestClassifier(n_estimators=500, random_state=42)
 model_nonvpn.fit(X_train_nonvpn_sm, y_train_nonvpn_sm)
@@ -111,10 +147,10 @@ sns.heatmap(cm_nonvpn, annot=True, fmt='.2%', cmap='Oranges', xticklabels=sorted
 plt.title('Non-VPN Services Confusion Matrix (Normalized)')
 plt.xlabel('Predicted')
 plt.ylabel('Actual')
-plt.savefig(os.path.join(model_dir, 'nonvpn_services_confusion_matrix.png'))
+plt.savefig(model_dir / 'nonvpn_services_confusion_matrix.png')
 plt.show()
 
 # Save NonVPN model
-joblib.dump(model_nonvpn, os.path.join(model_dir, 'nonvpn_services_model.pkl'))
+joblib.dump(model_nonvpn, model_dir / 'nonvpn_services_model.pkl')
 
 print("Models trained and saved successfully.")

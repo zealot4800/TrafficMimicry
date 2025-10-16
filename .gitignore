@@ -6,8 +6,11 @@
 *.arff
 *.csv
 FlowPic_raw_csvs/*
-*.zip
+*.log
 *.pkl
 *.png
 *.txt
 *.json
+*.mp4
+*.pdf
+*.zip

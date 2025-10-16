@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Iterable, List
 
 import sys
+import gc  # Add garbage collection
 from tqdm import tqdm
 
 
@@ -35,16 +36,22 @@ def _parse_args() -> argparse.Namespace:
         help="Final CSV path to consolidate results when using --pcap-dir",
     )
     parser.add_argument(
-        "--patterns",
-        nargs="*",
-        default=["*.pcap", "*.pcapng"],
-        help="Glob patterns to search in directory mode",
+        "--packet-chunk-size",
+        type=int,
+        default=10000,
+        help="Number of packets to process before flushing flows (for memory management)",
     )
     parser.add_argument(
         "--cic-root",
         default=Path("/home/zealot/cicflowmeter/src"),
         type=Path,
         help="Path to cicflowmeter source tree",
+    )
+    parser.add_argument(
+        "--patterns",
+        nargs="*",
+        default=["*.pcap", "*.pcapng"],
+        help="Glob patterns to search in directory mode",
     )
     args = parser.parse_args()
 
@@ -63,26 +70,45 @@ def _collect_pcaps(root: Path, patterns: Iterable[str]) -> List[Path]:
     files: List[Path] = []
     for pattern in patterns:
         files.extend(root.rglob(pattern))
-    return sorted(set(files))
+    return [
+        path
+        for path in sorted(set(files))
+        if not path.stem.endswith("_sample")
+    ]
 
 
-def _convert_file(session_factory, sniffer_cls, pcap: Path, csv_path: Path) -> None:
+def _convert_file(session_factory, sniffer_cls, pcap: Path, csv_path: Path, packet_chunk_size: int = 10000) -> None:
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     session = session_factory(str(csv_path))
+    
     try:
         from scapy.all import PcapReader
-
         total_packets = sum(1 for _ in PcapReader(str(pcap)))
     except Exception:
         total_packets = None
 
+    packet_count = 0
+    chunk_count = 0
+    
     with tqdm(
         total=total_packets, unit="pkt", desc=f"Processing {pcap.name}"
     ) as pbar:
 
         def process_packet(packet):
+            nonlocal packet_count, chunk_count
             session.process(packet)
+            packet_count += 1
             pbar.update(1)
+            
+            # Trigger garbage collection periodically to manage memory
+            if packet_count >= packet_chunk_size:
+                # Force garbage collection of expired flows
+                import time
+                current_time = time.time()
+                session.garbage_collect(current_time)
+                chunk_count += 1
+                packet_count = 0
+                gc.collect()  # Force Python garbage collection
 
         sniffer = sniffer_cls(
             offline=str(pcap),
@@ -92,7 +118,10 @@ def _convert_file(session_factory, sniffer_cls, pcap: Path, csv_path: Path) -> N
         sniffer.start()
         sniffer.join()
 
-    session.flush_flows()
+    # Final cleanup for remaining flows
+    session.garbage_collect(None)
+    
+    print(f"Processed {pcap.name} in {chunk_count + 1} chunks")
 
 
 def _combine_csvs(csv_files: List[Path], combined_path: Path) -> None:
@@ -156,7 +185,7 @@ def main() -> None:
         pcap_path = args.pcap.resolve()
         csv_path = args.csv.resolve()
         print(f"Processing {pcap_path} -> {csv_path}")
-        _convert_file(session_factory, AsyncSniffer, pcap_path, csv_path)
+        _convert_file(session_factory, AsyncSniffer, pcap_path, csv_path, args.packet_chunk_size)
         return
 
     pcap_root = args.pcap_dir.resolve()
@@ -169,27 +198,22 @@ def main() -> None:
 
     total = len(pcaps)
     csv_outputs: List[Path] = []
+
+    # Process all PCAPs
     for index, pcap in enumerate(pcaps, start=1):
         relative = pcap.relative_to(pcap_root)
         destination = (csv_root / relative).with_suffix(".csv")
         print(f"[{index}/{total}] {pcap} -> {destination}")
-        _convert_file(session_factory, AsyncSniffer, pcap, destination)
+        _convert_file(session_factory, AsyncSniffer, pcap, destination, args.packet_chunk_size)
         csv_outputs.append(destination)
 
+    # Combine all CSVs
     resolved_outputs = [path.resolve() for path in csv_outputs]
     if combined_target in resolved_outputs:
-        raise ValueError("--combined-csv must differ from per-file CSV destinations")
+        raise ValueError("--combined-csv must differ from CSV destinations")
 
-    print(f"Combining {len(csv_outputs)} CSV files into {combined_target}")
+    print(f"\nCombining {len(csv_outputs)} CSV files into {combined_target}")
     _combine_csvs(csv_outputs, combined_target)
-
-    removed = 0
-    for csv_file, resolved in zip(csv_outputs, resolved_outputs):
-        if resolved == combined_target:
-            continue
-        csv_file.unlink(missing_ok=True)
-        removed += 1
-    print(f"Removed {removed} intermediate CSV files")
 
 
 if __name__ == "__main__":
