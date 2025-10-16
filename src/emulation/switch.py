@@ -6,13 +6,13 @@ and captures the exchanged traffic into a PCAP file.
 from __future__ import annotations
 
 import argparse
-import shlex
+import os
 import signal
 import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import Iterable, Optional
 
 
 def parse_args(argv: Optional[Iterable[str]] = None) -> argparse.Namespace:
@@ -43,10 +43,6 @@ def _import_mininet() -> None:
         import mininet 
     except ImportError as exc:  
         raise SystemExit("Mininet must be installed to run this script.") from exc
-
-
-def _build_command(parts: List[str]) -> str:
-    return " ".join(shlex.quote(part) for part in parts)
 
 
 def _ensure_parent(path: Path) -> None:
@@ -103,85 +99,135 @@ def launch(args: argparse.Namespace) -> None:
 
     _ensure_parent(args.pcap.resolve())
 
+    results_dir = Path("results/emulation").resolve()
+    results_dir.mkdir(parents=True, exist_ok=True)
+
     sender_cmd = [
         args.python_bin,
         str(sender_script),
         "--source",
         str(args.media.resolve()),
-        "--verbose",
+        "--chunk-size",
+        "1450",
     ]
+    receiver_output = (results_dir / args.media.name) if args.media else (results_dir / "received_payload.bin")
     receiver_cmd = [
         args.python_bin,
         str(receiver_script),
         "--output",
-        str(Path("results/emulation/received_video.mp4").resolve()),
+        str(receiver_output.resolve()),
     ]
+    if args.verbose:
+        sender_cmd.append("--verbose")
+        receiver_cmd.append("--verbose")
 
-    sender_log = Path("results/emulation/sender.log").resolve()
-    receiver_log = Path("results/emulation/receiver.log").resolve()
-    tcpdump_log_path = Path("results/emulation/tcpdump.log").resolve()
+    sender_log = results_dir / "sender.log"
+    receiver_log = results_dir / "receiver.log"
+    tcpdump_log_path = results_dir / "tcpdump.log"
 
     for path in (sender_log, receiver_log, tcpdump_log_path):
         _ensure_parent(path)
 
     tcpdump_handle: Optional[object] = None
+    sender_handle: Optional[object] = None
+    receiver_handle: Optional[object] = None
 
     capture = sender_process = receiver_process = None
 
     try:
         if not args.verbose:
             tcpdump_handle = tcpdump_log_path.open("w")
-        capture_cmd = _build_command(
-            [
+        
+        capture_cmd = [
+            "sh",
+            "-c",
+            " ".join([
                 "tcpdump",
+                "-l",
+                "-q",
                 "-U",
                 "-n",
                 "-i",
                 sniff_intf,
                 "-w",
                 str(args.pcap.resolve()),
+                "-s",
+                "1500",
                 "tcp",
                 "port",
                 "9000",
-            ]
-        )
+            ]) + " 2>/dev/null"
+        ]
+        
         capture = receiver.popen(
             capture_cmd,
-            stdout=None if args.verbose else tcpdump_handle,
-            stderr=subprocess.STDOUT if not args.verbose else None,
+            stdout=tcpdump_handle if tcpdump_handle else subprocess.DEVNULL,
+            stderr=tcpdump_handle if tcpdump_handle else subprocess.DEVNULL,
         )
 
-        sender_exec = _build_command(sender_cmd)
         if args.verbose:
-            sender_process = sender.popen(sender_exec)
+            sender_process = sender.popen(sender_cmd)
         else:
-            sender_process = sender.popen(f"{sender_exec} 2>&1 | tee {shlex.quote(str(sender_log))}")
+            sender_handle = sender_log.open("w")
+            sender_process = sender.popen(
+                sender_cmd,
+                stdout=sender_handle,
+                stderr=subprocess.STDOUT,
+            )
 
         time.sleep(1.0)
 
-        receiver_exec = _build_command(receiver_cmd)
         if args.verbose:
-            receiver_process = receiver.popen(receiver_exec)
+            receiver_process = receiver.popen(receiver_cmd)
         else:
-            receiver_process = receiver.popen(f"{receiver_exec} 2>&1 | tee {shlex.quote(str(receiver_log))}")
+            receiver_handle = receiver_log.open("w")
+            receiver_process = receiver.popen(
+                receiver_cmd,
+                stdout=receiver_handle,
+                stderr=subprocess.STDOUT,
+            )
 
         receiver_process.wait()
+
         _terminate(sender_process)
         _terminate(capture, sig=signal.SIGINT)
+
+        if sender_process:
+            try:
+                sender_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                _terminate(sender_process, sig=signal.SIGKILL)
+
+        if capture:
+            try:
+                capture.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                _terminate(capture, sig=signal.SIGKILL)
+
+        time.sleep(0.5)
     finally:
-        if tcpdump_handle:
-            tcpdump_handle.close()
+        for handle in (tcpdump_handle, sender_handle, receiver_handle):
+            if handle:
+                handle.close()
         net.stop()
 
     pcap_path = args.pcap.resolve()
-    if not pcap_path.exists():
+    if pcap_path.exists():
+        target_uid = int(os.environ.get("SUDO_UID", os.getuid()))
+        target_gid = int(os.environ.get("SUDO_GID", os.getgid()))
+        for path in (pcap_path, sender_log, receiver_log, tcpdump_log_path, receiver_output):
+            try:
+                if Path(path).exists():
+                    os.chown(path, target_uid, target_gid)
+            except PermissionError:
+                pass
+        print(f"PCAP stored at {pcap_path}")
+    else:
         hint = (
             f"tcpdump did not create {pcap_path}. Check {tcpdump_log_path} for errors "
             "and ensure the capture interface is correct."
         )
         print(hint, file=sys.stderr)
-    else:
-        print(f"PCAP stored at {pcap_path}")
 
 
 def main(argv: Optional[Iterable[str]] = None) -> int:

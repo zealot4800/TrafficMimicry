@@ -11,6 +11,6 @@ FlowPic_raw_csvs/*
 *.png
 *.txt
 *.json
-*.mp4
+
 *.pdf
 *.zip
