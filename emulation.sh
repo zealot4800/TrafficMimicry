@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
-MEDIA_PATH="${MEDIA_PATH:-${ROOT_DIR}/src/emulation/Second_720p.mp4}"
+MEDIA_PATH="${MEDIA_PATH:-${ROOT_DIR}/src/emulation/Song_720.mp4}"
 PCAP_PATH="${PCAP_PATH:-${ROOT_DIR}/results/emulation/stream_capture.pcap}"
 VERBOSE_FLAG="${VERBOSE_EMULATION:-0}"
 
